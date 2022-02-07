@@ -1,4 +1,4 @@
-package Repositories
+package repositories
 
 type Shortener interface {
 	Add(link string) string

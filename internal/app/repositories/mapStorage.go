@@ -1,4 +1,4 @@
-package Repositories
+package repositories
 
 import (
 	"errors"
@@ -29,5 +29,5 @@ func (s *MapStorage) Get(id string) (string, error) {
 	if val, ok := s.db[id]; ok {
 		return val, nil
 	}
-	return "", errors.New("Not found link ID")
+	return "", errors.New("not found link id")
 }

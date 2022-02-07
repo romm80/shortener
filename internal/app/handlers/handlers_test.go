@@ -1,7 +1,7 @@
-package Handlers
+package handlers
 
 import (
-	"github.com/romm80/shortener.git/internal/app/Repositories"
+	"github.com/romm80/shortener.git/internal/app/repositories"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	"io/ioutil"
@@ -12,7 +12,7 @@ import (
 )
 
 func TestShortener_ServeHTTP(t *testing.T) {
-	storage := &Repositories.MapStorage{}
+	storage := &repositories.MapStorage{}
 	storage.Init()
 	handler := &Shortener{Storage: storage}
 
@@ -26,7 +26,7 @@ func TestShortener_ServeHTTP(t *testing.T) {
 		request string
 		body    string
 		method  string
-		storage Repositories.Shortener
+		storage repositories.Shortener
 		want    want
 	}{
 		// TODO: Add test cases.
@@ -73,7 +73,7 @@ func TestShortener_ServeHTTP(t *testing.T) {
 			storage: storage,
 			want: want{
 				statusCode: 400,
-				body:       "Not found link ID\n"}},
+				body:       "not found link id\n"}},
 		{
 			name:    "Wrong method 1",
 			request: "/",
@@ -81,7 +81,7 @@ func TestShortener_ServeHTTP(t *testing.T) {
 			storage: storage,
 			want: want{
 				statusCode: 400,
-				body:       "Expect method GET /{id} or POST /\n"}},
+				body:       "expect method GET /{id} or POST /\n"}},
 		{
 			name:    "Wrong method 2",
 			request: "/1/2",

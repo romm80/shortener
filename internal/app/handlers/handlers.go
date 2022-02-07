@@ -1,8 +1,8 @@
-package Handlers
+package handlers
 
 import (
 	"fmt"
-	"github.com/romm80/shortener.git/internal/app/Repositories"
+	"github.com/romm80/shortener.git/internal/app/repositories"
 	"io"
 	"net/http"
 	"regexp"
@@ -11,7 +11,7 @@ import (
 var regexpID = regexp.MustCompile(`^\/([\w\d]+)\/?$`)
 
 type Shortener struct {
-	Storage Repositories.Shortener
+	Storage repositories.Shortener
 }
 
 func (h *Shortener) ServeHTTP(w http.ResponseWriter, r *http.Request) {
@@ -37,6 +37,6 @@ func (h *Shortener) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 
 		http.Redirect(w, r, link, http.StatusTemporaryRedirect)
 	default:
-		http.Error(w, "Expect method GET /{id} or POST /", http.StatusBadRequest)
+		http.Error(w, "expect method GET /{id} or POST /", http.StatusBadRequest)
 	}
 }
