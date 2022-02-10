@@ -3,7 +3,7 @@ package handlers
 import (
 	"github.com/gin-gonic/gin"
 	"github.com/romm80/shortener.git/internal/app/repositories"
-	"github.com/romm80/shortener.git/internal/app/repositories/mapStorage"
+	"github.com/romm80/shortener.git/internal/app/repositories/mapstorage"
 	"github.com/romm80/shortener.git/internal/app/server"
 	"io/ioutil"
 	"net/http"
@@ -16,7 +16,7 @@ type Shortener struct {
 
 func New() *Shortener {
 	r := &Shortener{}
-	r.Storage = mapStorage.New()
+	r.Storage = mapstorage.New()
 
 	gin.DefaultWriter = ioutil.Discard
 	gin.SetMode(gin.ReleaseMode)
