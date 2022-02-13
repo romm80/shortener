@@ -1,6 +1,7 @@
 package handlers
 
 import (
+	"github.com/romm80/shortener.git/internal/app/server"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	"io/ioutil"
@@ -12,7 +13,10 @@ import (
 
 func TestShortener_Add(t *testing.T) {
 	handler := New()
-
+	server.Cfg = server.Config{
+		Protocol: "http",
+		Addr:     "127.0.0.1:8080",
+	}
 	type want struct {
 		status int
 		body   string
@@ -65,7 +69,11 @@ func TestShortener_Add(t *testing.T) {
 
 func TestShortener_Get(t *testing.T) {
 	handler := New()
-
+	server.Cfg = server.Config{
+		Protocol: "http",
+		Addr:     "127.0.0.1:8080",
+	}
+	
 	type want struct {
 		status   int
 		location string
