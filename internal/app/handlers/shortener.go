@@ -35,7 +35,7 @@ func (s *Shortener) Add(c *gin.Context) {
 	}
 
 	id := s.Storage.Add(string(link))
-	c.String(http.StatusCreated, "http://%v:%v/%v", server.Cfg.Addr, server.Cfg.Port, id)
+	c.String(http.StatusCreated, "%s/%s", server.Host(), id)
 
 }
 

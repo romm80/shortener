@@ -1,15 +1,14 @@
 package server
 
+import "fmt"
+
 type Config struct {
-	Addr string
-	Port string
+	Protocol string
+	Addr     string
 }
 
 var Cfg Config
 
-func init() {
-	Cfg = Config{
-		Addr: "127.0.0.1",
-		Port: "8080",
-	}
+func Host() string {
+	return fmt.Sprintf("%s://%s", Cfg.Protocol, Cfg.Addr)
 }

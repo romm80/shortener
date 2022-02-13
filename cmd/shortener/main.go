@@ -7,6 +7,10 @@ import (
 )
 
 func main() {
+	server.Cfg = server.Config{
+		Protocol: "http",
+		Addr:     "127.0.0.1:8080",
+	}
 	handler := handlers.New()
 	srv := new(server.Server)
 	log.Fatal(srv.Run(handler.Router))
