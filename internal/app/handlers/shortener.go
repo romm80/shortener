@@ -46,7 +46,7 @@ func (s *Shortener) Add(c *gin.Context) {
 	}
 
 	id := s.Storage.Add(string(link))
-	c.String(http.StatusCreated, "%s/%s", server.Host(), id)
+	c.String(http.StatusCreated, "%s/%s", server.Cfg.BaseURL, id)
 
 }
 
@@ -62,7 +62,7 @@ func (s *Shortener) AddJSON(c *gin.Context) {
 	}
 
 	id := s.Storage.Add(url.URL)
-	res := ShortenURL{Result: fmt.Sprintf("%s/%s", server.Host(), id)}
+	res := ShortenURL{Result: fmt.Sprintf("%s/%s", server.Cfg.BaseURL, id)}
 	c.JSON(http.StatusCreated, res)
 }
 

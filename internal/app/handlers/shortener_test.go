@@ -13,10 +13,8 @@ import (
 
 func TestShortener_Add(t *testing.T) {
 	handler := New()
-	server.Cfg = server.Config{
-		Protocol: "http",
-		Addr:     "127.0.0.1:8080",
-	}
+	server.Cfg.Init()
+
 	type want struct {
 		status int
 		body   string
@@ -69,10 +67,7 @@ func TestShortener_Add(t *testing.T) {
 
 func TestShortener_Get(t *testing.T) {
 	handler := New()
-	server.Cfg = server.Config{
-		Protocol: "http",
-		Addr:     "127.0.0.1:8080",
-	}
+	server.Cfg.Init()
 
 	type want struct {
 		status   int
@@ -129,10 +124,8 @@ func TestShortener_Get(t *testing.T) {
 
 func TestShortener_AddJSON(t *testing.T) {
 	handler := New()
-	server.Cfg = server.Config{
-		Protocol: "http",
-		Addr:     "127.0.0.1:8080",
-	}
+	server.Cfg.Init()
+
 	type want struct {
 		status      int
 		contentType string

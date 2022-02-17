@@ -1,14 +1,19 @@
 package server
 
-import "fmt"
+import (
+	"github.com/caarlos0/env/v6"
+	"log"
+)
 
 type Config struct {
-	Protocol string
-	Addr     string
+	SrvAddr string `env:"SERVER_ADDRESS,required"`
+	BaseURL string `env:"BASE_URL,required"`
 }
 
 var Cfg Config
 
-func Host() string {
-	return fmt.Sprintf("%s://%s", Cfg.Protocol, Cfg.Addr)
+func (c *Config) Init() {
+	if err := env.Parse(c); err != nil {
+		log.Fatal(err)
+	}
 }
