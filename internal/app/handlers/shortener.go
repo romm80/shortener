@@ -17,7 +17,7 @@ type Shortener struct {
 }
 
 type URL struct {
-	Url string `json:"url"`
+	URL string `json:"url"`
 }
 
 type ShortenURL struct {
@@ -56,12 +56,12 @@ func (s *Shortener) AddJSON(c *gin.Context) {
 		c.AbortWithError(http.StatusBadRequest, err)
 		return
 	}
-	if url.Url == "" {
+	if url.URL == "" {
 		c.AbortWithStatus(http.StatusBadRequest)
 		return
 	}
 
-	id := s.Storage.Add(url.Url)
+	id := s.Storage.Add(url.URL)
 	res := ShortenURL{Result: fmt.Sprintf("%s/%s", server.Host(), id)}
 	c.JSON(http.StatusCreated, res)
 }
