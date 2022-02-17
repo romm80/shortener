@@ -1,6 +1,8 @@
 package handlers
 
 import (
+	"encoding/json"
+	"fmt"
 	"github.com/gin-gonic/gin"
 	"github.com/romm80/shortener.git/internal/app/repositories"
 	"github.com/romm80/shortener.git/internal/app/repositories/mapstorage"
@@ -14,6 +16,14 @@ type Shortener struct {
 	Storage repositories.Shortener
 }
 
+type URL struct {
+	Url string `json:"url"`
+}
+
+type ShortenURL struct {
+	Result string `json:"result"`
+}
+
 func New() *Shortener {
 	r := &Shortener{}
 	r.Storage = mapstorage.New()
@@ -23,6 +33,7 @@ func New() *Shortener {
 	r.Router = gin.Default()
 	r.Router.POST("/", r.Add)
 	r.Router.GET("/:id", r.Get)
+	r.Router.POST("/api/shorten", r.AddJSON)
 
 	return r
 }
@@ -37,6 +48,22 @@ func (s *Shortener) Add(c *gin.Context) {
 	id := s.Storage.Add(string(link))
 	c.String(http.StatusCreated, "%s/%s", server.Host(), id)
 
+}
+
+func (s *Shortener) AddJSON(c *gin.Context) {
+	var url URL
+	if err := json.NewDecoder(c.Request.Body).Decode(&url); err != nil {
+		c.AbortWithError(http.StatusBadRequest, err)
+		return
+	}
+	if url.Url == "" {
+		c.AbortWithStatus(http.StatusBadRequest)
+		return
+	}
+
+	id := s.Storage.Add(url.Url)
+	res := ShortenURL{Result: fmt.Sprintf("%s/%s", server.Host(), id)}
+	c.JSON(http.StatusCreated, res)
 }
 
 func (s *Shortener) Get(c *gin.Context) {
