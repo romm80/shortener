@@ -46,7 +46,7 @@ func (s *Shortener) Add(c *gin.Context) {
 	}
 
 	id := s.Storage.Add(string(link))
-	c.String(http.StatusCreated, "%s|%s", server.Cfg.BaseURL, id)
+	c.String(http.StatusCreated, "%s/%s", server.Cfg.BaseURL, id)
 
 }
 
