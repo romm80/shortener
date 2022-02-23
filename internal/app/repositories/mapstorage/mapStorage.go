@@ -18,8 +18,8 @@ type MapStorage struct {
 }
 
 type LinkID struct {
-	ID   string `json:"id"`
-	Link string `json:"link"`
+	ID   string
+	Link string
 }
 
 func New() *MapStorage {
@@ -36,8 +36,7 @@ func New() *MapStorage {
 		linkID := &LinkID{}
 		scan := bufio.NewScanner(file)
 		for scan.Scan() {
-			err = json.Unmarshal(scan.Bytes(), linkID)
-			if err != nil {
+			if err = json.Unmarshal(scan.Bytes(), linkID); err != nil {
 				log.Fatal(err)
 			}
 			storage[linkID.ID] = linkID.Link
@@ -55,9 +54,13 @@ func (s *MapStorage) Add(link string) (string, error) {
 	h.Write([]byte(link))
 	id := hex.EncodeToString(h.Sum(nil))[:4]
 
+	if _, inMap := s.links[id]; inMap {
+		return id, nil
+	}
+
 	s.mu.Lock()
 	defer s.mu.Unlock()
-
+	s.links[id] = link
 	if server.Cfg.FileStorage != "" {
 		file, err := os.OpenFile(server.Cfg.FileStorage, os.O_WRONLY|os.O_CREATE|os.O_APPEND, 0777)
 		if err != nil {
@@ -75,8 +78,6 @@ func (s *MapStorage) Add(link string) (string, error) {
 		}
 
 	}
-
-	s.links[id] = link
 
 	return id, nil
 }

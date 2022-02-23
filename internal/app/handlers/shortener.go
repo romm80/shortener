@@ -16,7 +16,7 @@ type Shortener struct {
 	Storage repositories.Shortener
 }
 
-type URL struct {
+type OriginURL struct {
 	URL string `json:"url"`
 }
 
@@ -52,7 +52,7 @@ func (s *Shortener) Add(c *gin.Context) {
 }
 
 func (s *Shortener) AddJSON(c *gin.Context) {
-	var url URL
+	var url OriginURL
 	if err := json.NewDecoder(c.Request.Body).Decode(&url); err != nil {
 		c.AbortWithError(http.StatusBadRequest, err)
 		return
