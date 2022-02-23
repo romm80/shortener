@@ -68,6 +68,8 @@ func TestShortener_Add(t *testing.T) {
 func TestShortener_Get(t *testing.T) {
 	handler := New()
 	server.Cfg.Init()
+	url1, _ := handler.Storage.Add("https://www.google.com/")
+	url2, _ := handler.Storage.Add("https://yandex.ru/")
 
 	type want struct {
 		status   int
@@ -82,7 +84,7 @@ func TestShortener_Get(t *testing.T) {
 		{
 			name: "Successfully received link 1",
 			path: "/",
-			id:   handler.Storage.Add("https://www.google.com/"),
+			id:   url1,
 			want: want{
 				status:   307,
 				location: "https://www.google.com/",
@@ -91,7 +93,7 @@ func TestShortener_Get(t *testing.T) {
 		{
 			name: "Successfully received link 2",
 			path: "/",
-			id:   handler.Storage.Add("https://yandex.ru/"),
+			id:   url2,
 			want: want{
 				status:   307,
 				location: "https://yandex.ru/",
