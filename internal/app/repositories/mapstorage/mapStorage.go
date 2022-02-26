@@ -62,7 +62,7 @@ func (s *MapStorage) Add(link string) (string, error) {
 	defer s.mu.Unlock()
 	s.links[id] = link
 	if server.Cfg.FileStorage != "" {
-		file, err := os.OpenFile(server.Cfg.FileStorage, os.O_WRONLY|os.O_CREATE|os.O_APPEND, 0777)
+		file, err := os.OpenFile(server.Cfg.FileStorage, os.O_WRONLY|os.O_APPEND, 0777)
 		if err != nil {
 			return "", err
 		}

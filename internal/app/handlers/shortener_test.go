@@ -1,10 +1,12 @@
 package handlers
 
 import (
+	"github.com/caarlos0/env/v6"
 	"github.com/romm80/shortener.git/internal/app/server"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	"io/ioutil"
+	"log"
 	"net/http"
 	"net/http/httptest"
 	"strings"
@@ -13,7 +15,9 @@ import (
 
 func TestShortener_Add(t *testing.T) {
 	handler := New()
-	server.Cfg.Init()
+	if err := env.Parse(&server.Cfg); err != nil {
+		log.Fatal(err)
+	}
 
 	type want struct {
 		status int
@@ -67,7 +71,9 @@ func TestShortener_Add(t *testing.T) {
 
 func TestShortener_Get(t *testing.T) {
 	handler := New()
-	server.Cfg.Init()
+	if err := env.Parse(&server.Cfg); err != nil {
+		log.Fatal(err)
+	}
 	url1, _ := handler.Storage.Add("https://www.google.com/")
 	url2, _ := handler.Storage.Add("https://yandex.ru/")
 
@@ -126,7 +132,9 @@ func TestShortener_Get(t *testing.T) {
 
 func TestShortener_AddJSON(t *testing.T) {
 	handler := New()
-	server.Cfg.Init()
+	if err := env.Parse(&server.Cfg); err != nil {
+		log.Fatal(err)
+	}
 
 	type want struct {
 		status      int
