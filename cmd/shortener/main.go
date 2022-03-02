@@ -17,7 +17,11 @@ func main() {
 	flag.StringVar(&server.Cfg.FileStorage, "f", server.Cfg.FileStorage, "File storage path")
 	flag.Parse()
 
-	handler := handlers.New()
+	handler, err := handlers.New()
+	if err != nil {
+		log.Fatal(err)
+	}
+
 	srv := new(server.Server)
 	log.Fatal(srv.Run(handler.Router))
 }

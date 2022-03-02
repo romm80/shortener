@@ -24,16 +24,20 @@ type ShortURL struct {
 	Result string `json:"result"`
 }
 
-func New() *Shortener {
+func New() (*Shortener, error) {
 	r := &Shortener{}
-	r.Storage = mapstorage.New()
+	s, err := mapstorage.New()
+	if err != nil {
+		return nil, err
+	}
+	r.Storage = s
 
 	r.Router = gin.Default()
 	r.Router.POST("/", r.Add)
 	r.Router.GET("/:id", r.Get)
 	r.Router.POST("/api/shorten", r.AddJSON)
 
-	return r
+	return r, nil
 }
 
 func (s *Shortener) Add(c *gin.Context) {
@@ -46,6 +50,7 @@ func (s *Shortener) Add(c *gin.Context) {
 	id, err := s.Storage.Add(string(link))
 	if err != nil {
 		c.AbortWithError(http.StatusInternalServerError, err)
+		return
 	}
 	c.String(http.StatusCreated, "%s/%s", server.Cfg.BaseURL, id)
 
@@ -65,6 +70,7 @@ func (s *Shortener) AddJSON(c *gin.Context) {
 	id, err := s.Storage.Add(url.URL)
 	if err != nil {
 		c.AbortWithError(http.StatusInternalServerError, err)
+		return
 	}
 	res := ShortURL{Result: fmt.Sprintf("%s/%s", server.Cfg.BaseURL, id)}
 	c.JSON(http.StatusCreated, res)

@@ -14,7 +14,10 @@ import (
 )
 
 func TestShortener_Add(t *testing.T) {
-	handler := New()
+	handler, err := New()
+	if err != nil {
+		log.Fatal(err)
+	}
 	if err := env.Parse(&server.Cfg); err != nil {
 		log.Fatal(err)
 	}
@@ -70,7 +73,10 @@ func TestShortener_Add(t *testing.T) {
 }
 
 func TestShortener_Get(t *testing.T) {
-	handler := New()
+	handler, err := New()
+	if err != nil {
+		log.Fatal(err)
+	}
 	if err := env.Parse(&server.Cfg); err != nil {
 		log.Fatal(err)
 	}
@@ -131,7 +137,10 @@ func TestShortener_Get(t *testing.T) {
 }
 
 func TestShortener_AddJSON(t *testing.T) {
-	handler := New()
+	handler, err := New()
+	if err != nil {
+		log.Fatal(err)
+	}
 	if err := env.Parse(&server.Cfg); err != nil {
 		log.Fatal(err)
 	}

@@ -7,7 +7,6 @@ import (
 	"encoding/json"
 	"errors"
 	"github.com/romm80/shortener.git/internal/app/server"
-	"log"
 	"os"
 	"sync"
 )
@@ -22,14 +21,14 @@ type LinkID struct {
 	Link string
 }
 
-func New() *MapStorage {
+func New() (*MapStorage, error) {
 
 	storage := make(map[string]string)
 
 	if server.Cfg.FileStorage != "" {
 		file, err := os.OpenFile(server.Cfg.FileStorage, os.O_RDONLY|os.O_CREATE, 0777)
 		if err != nil {
-			log.Fatalln(err)
+			return nil, err
 		}
 		defer file.Close()
 
@@ -37,7 +36,7 @@ func New() *MapStorage {
 		scan := bufio.NewScanner(file)
 		for scan.Scan() {
 			if err = json.Unmarshal(scan.Bytes(), linkID); err != nil {
-				log.Fatal(err)
+				return nil, err
 			}
 			storage[linkID.ID] = linkID.Link
 		}
@@ -46,7 +45,7 @@ func New() *MapStorage {
 	return &MapStorage{
 		mu:    &sync.Mutex{},
 		links: storage,
-	}
+	}, nil
 }
 
 func (s *MapStorage) Add(link string) (string, error) {
