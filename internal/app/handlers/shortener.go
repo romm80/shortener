@@ -1,6 +1,7 @@
 package handlers
 
 import (
+	"compress/gzip"
 	"encoding/json"
 	"fmt"
 	"github.com/gin-gonic/gin"
@@ -9,6 +10,7 @@ import (
 	"github.com/romm80/shortener.git/internal/app/server"
 	"io/ioutil"
 	"net/http"
+	"strings"
 )
 
 type Shortener struct {
@@ -24,6 +26,15 @@ type ShortURL struct {
 	Result string `json:"result"`
 }
 
+type gzipWriter struct {
+	gin.ResponseWriter
+	writer *gzip.Writer
+}
+
+func (r *gzipWriter) Write(b []byte) (int, error) {
+	return r.writer.Write(b)
+}
+
 func New() (*Shortener, error) {
 	r := &Shortener{}
 	s, err := mapstorage.New()
@@ -33,6 +44,7 @@ func New() (*Shortener, error) {
 	r.Storage = s
 
 	r.Router = gin.Default()
+	r.Router.Use(gzipMiddleware)
 	r.Router.POST("/", r.Add)
 	r.Router.GET("/:id", r.Get)
 	r.Router.POST("/api/shorten", r.AddJSON)
@@ -85,4 +97,26 @@ func (s *Shortener) Get(c *gin.Context) {
 	}
 
 	c.Redirect(http.StatusTemporaryRedirect, link)
+}
+
+func gzipMiddleware(c *gin.Context) {
+	if strings.Contains(c.Request.Header.Get("Content-Encoding"), "gzip") {
+		gz, err := gzip.NewReader(c.Request.Body)
+		if err != nil {
+			c.AbortWithStatus(http.StatusBadRequest)
+			return
+		}
+		defer gz.Close()
+		c.Request.Body = gz
+	}
+	if strings.Contains(c.Request.Header.Get("Accept-Encoding"), "gzip") {
+		c.Header("Content-Encoding", "gzip")
+		gz := gzip.NewWriter(c.Writer)
+		defer gz.Close()
+		c.Writer = &gzipWriter{
+			ResponseWriter: c.Writer,
+			writer:         gz,
+		}
+	}
+	c.Next()
 }
