@@ -80,8 +80,9 @@ func TestShortener_Get(t *testing.T) {
 	if err := env.Parse(&server.Cfg); err != nil {
 		log.Fatal(err)
 	}
-	url1, _ := handler.Storage.Add("https://www.google.com/", 1)
-	url2, _ := handler.Storage.Add("https://yandex.ru/", 1)
+	userID := handler.Storage.NewUser()
+	url1, _ := handler.Storage.Add("https://www.google.com/", userID)
+	url2, _ := handler.Storage.Add("https://yandex.ru/", userID)
 
 	type want struct {
 		status   int

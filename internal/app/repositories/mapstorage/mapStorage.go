@@ -57,7 +57,7 @@ func New() (*MapStorage, error) {
 	}, nil
 }
 
-func (s *MapStorage) Add(link string, userId uint64) (string, error) {
+func (s *MapStorage) Add(link string, userID uint64) (string, error) {
 	h := md5.New()
 	h.Write([]byte(link))
 	id := hex.EncodeToString(h.Sum(nil))[:4]
@@ -69,10 +69,7 @@ func (s *MapStorage) Add(link string, userId uint64) (string, error) {
 	s.mu.Lock()
 	defer s.mu.Unlock()
 	s.links[id] = link
-	if s.usersLinks[userId] == nil {
-		s.usersLinks[userId] = make(map[string]string)
-	}
-	s.usersLinks[userId][id] = link
+	s.usersLinks[userID][id] = link
 
 	if server.Cfg.FileStorage != "" {
 		file, err := os.OpenFile(server.Cfg.FileStorage, os.O_WRONLY|os.O_APPEND, 0777)

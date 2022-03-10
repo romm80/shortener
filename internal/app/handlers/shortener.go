@@ -141,12 +141,12 @@ func (s *Shortener) AuthMiddleware(c *gin.Context) {
 	cookie, err := c.Cookie("userid")
 	if err != nil || invalidUserID(cookie, &userID) || !s.Storage.CheckUserID(userID) {
 		userID = s.Storage.NewUser()
-		signedId, err := signUserID(userID)
+		signedID, err := signUserID(userID)
 		if err != nil {
 			c.AbortWithStatus(http.StatusInternalServerError)
 			return
 		}
-		c.SetCookie("userid", signedId, 60*60*24, "/", server.Cfg.Domain, false, true)
+		c.SetCookie("userid", signedID, 60*60*24, "/", server.Cfg.Domain, false, true)
 	}
 
 	c.Set("userid", userID)
