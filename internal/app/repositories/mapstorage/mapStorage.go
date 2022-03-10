@@ -102,15 +102,15 @@ func (s *MapStorage) Get(id string) (string, error) {
 	return "", errors.New("link not found by id")
 }
 
-func (s MapStorage) GetUserURLs(userID uint64) []UserURLs {
-	urls := new([]UserURLs)
+func (s *MapStorage) GetUserURLs(userID uint64) []UserURLs {
+	urls := make([]UserURLs, 0)
 	for k, v := range s.usersLinks[userID] {
-		*urls = append(*urls, UserURLs{
+		urls = append(urls, UserURLs{
 			ShortURL:    fmt.Sprintf("%s/%s", server.Cfg.BaseURL, k),
 			OriginalURL: v,
 		})
 	}
-	return *urls
+	return urls
 }
 func (s *MapStorage) NewUser() uint64 {
 	s.mu.Lock()
@@ -118,4 +118,9 @@ func (s *MapStorage) NewUser() uint64 {
 	s.usersLinks[id] = make(map[string]string)
 	s.mu.Unlock()
 	return id
+}
+
+func (s *MapStorage) CheckUserID(userID uint64) bool {
+	_, inMap := s.usersLinks[userID]
+	return inMap
 }

@@ -16,6 +16,8 @@ func main() {
 	flag.StringVar(&server.Cfg.BaseURL, "b", server.Cfg.BaseURL, "Base URL address")
 	flag.StringVar(&server.Cfg.FileStorage, "f", server.Cfg.FileStorage, "File storage path")
 	flag.Parse()
+	server.Cfg.Domain = "localhost"
+	server.Cfg.SecretKey = []byte("very_secret_key")
 
 	handler, err := handlers.New()
 	if err != nil {
