@@ -9,6 +9,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"github.com/gin-gonic/gin"
+	"github.com/jackc/pgx/v4"
 	"github.com/romm80/shortener.git/internal/app/repositories"
 	"github.com/romm80/shortener.git/internal/app/repositories/mapstorage"
 	"github.com/romm80/shortener.git/internal/app/server"
@@ -48,8 +49,10 @@ func New() (*Shortener, error) {
 	r.Storage = s
 
 	r.Router = gin.Default()
-	r.Router.Use(r.AuthMiddleware, r.GzipMiddleware)
+	r.Router.GET("/ping", PingDB)
+	r.Router.Use(r.GzipMiddleware)
 	r.Router.GET("/:id", r.Get)
+	r.Router.Use(r.AuthMiddleware)
 	r.Router.POST("/", r.Add)
 	r.Router.POST("/api/shorten", r.AddJSON)
 	r.Router.GET("/api/user/urls", r.GetUserURLs)
@@ -151,6 +154,20 @@ func (s *Shortener) AuthMiddleware(c *gin.Context) {
 
 	c.Set("userid", userID)
 	c.Next()
+}
+
+func PingDB(c *gin.Context) {
+	conn, err := pgx.Connect(c, server.Cfg.DatabaseDNS)
+	if err != nil {
+		c.AbortWithError(http.StatusInternalServerError, err)
+		return
+	}
+	err = conn.Ping(c)
+	if err != nil {
+		c.AbortWithError(http.StatusInternalServerError, err)
+		return
+	}
+	c.Status(http.StatusOK)
 }
 
 func signUserID(id uint64) (string, error) {

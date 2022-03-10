@@ -15,6 +15,7 @@ func main() {
 	flag.StringVar(&server.Cfg.SrvAddr, "a", server.Cfg.SrvAddr, "Server address")
 	flag.StringVar(&server.Cfg.BaseURL, "b", server.Cfg.BaseURL, "Base URL address")
 	flag.StringVar(&server.Cfg.FileStorage, "f", server.Cfg.FileStorage, "File storage path")
+	flag.StringVar(&server.Cfg.DatabaseDNS, "d", server.Cfg.DatabaseDNS, "Database DNS")
 	flag.Parse()
 	server.Cfg.Domain = "localhost"
 	server.Cfg.SecretKey = []byte("very_secret_key")
