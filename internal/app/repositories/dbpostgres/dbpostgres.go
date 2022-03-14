@@ -55,6 +55,9 @@ func (db *DB) Add(urls []app.URLsID, userID uint64) error {
 	defer conn.Release()
 
 	tx, err := conn.Begin(ctx)
+	if err != nil {
+		return err
+	}
 	defer tx.Rollback(ctx)
 
 	_, err = tx.Prepare(ctx, "url_id", `INSERT INTO urls_id (id, url) VALUES($1, $2) 
