@@ -5,7 +5,7 @@ import (
 	"fmt"
 	"github.com/golang-migrate/migrate/v4"
 	"github.com/jackc/pgx/v4/pgxpool"
-	"github.com/romm80/shortener.git/internal/app/repositories"
+	"github.com/romm80/shortener.git/internal/app"
 	"github.com/romm80/shortener.git/internal/app/server"
 )
 
@@ -46,24 +46,41 @@ func migrateDB() error {
 	return nil
 }
 
-func (db *DB) Add(urlID, url string, userID uint64) error {
-	conn, err := db.pool.Acquire(context.Background())
+func (db *DB) Add(urls []app.URLsID, userID uint64) error {
+	ctx := context.Background()
+	conn, err := db.pool.Acquire(ctx)
 	if err != nil {
 		return err
 	}
 	defer conn.Release()
 
-	_, err = conn.Exec(context.Background(), `INSERT INTO urls_id (id, url) VALUES($1, $2) 
-	ON CONFLICT (id) DO UPDATE SET url=excluded.url`, urlID, url)
+	tx, err := conn.Begin(ctx)
+	defer tx.Rollback(ctx)
+
+	_, err = tx.Prepare(ctx, "url_id", `INSERT INTO urls_id (id, url) VALUES($1, $2) 
+	ON CONFLICT (id) DO UPDATE SET url=excluded.url`)
 	if err != nil {
 		return err
 	}
-	_, err = conn.Exec(context.Background(), `INSERT INTO users_urls (user_id, url_id) VALUES ($1, $2)
-	ON CONFLICT (user_id, url_id) DO NOTHING`, userID, urlID)
+	_, err = tx.Prepare(ctx, "user_url", `INSERT INTO users_urls (user_id, url_id) VALUES ($1, $2)
+	ON CONFLICT (user_id, url_id) DO NOTHING`)
 	if err != nil {
 		return err
 	}
-	return nil
+
+	for _, v := range urls {
+		_, err := tx.Exec(ctx, "url_id", v.ID, v.OriginalURL)
+		if err != nil {
+			return err
+		}
+
+		_, err = tx.Exec(ctx, "user_url", userID, v.ID)
+		if err != nil {
+			return err
+		}
+	}
+
+	return tx.Commit(ctx)
 }
 
 func (db *DB) Get(id string) (originURL string, err error) {
@@ -80,8 +97,8 @@ func (db *DB) Get(id string) (originURL string, err error) {
 	return
 }
 
-func (db *DB) GetUserURLs(userID uint64) ([]repositories.UserURLs, error) {
-	urls := make([]repositories.UserURLs, 0)
+func (db *DB) GetUserURLs(userID uint64) ([]app.UserURLs, error) {
+	urls := make([]app.UserURLs, 0)
 	conn, err := db.pool.Acquire(context.Background())
 	if err != nil {
 		return urls, err
@@ -94,7 +111,7 @@ func (db *DB) GetUserURLs(userID uint64) ([]repositories.UserURLs, error) {
 		return nil, err
 	}
 	for rows.Next() {
-		url := &repositories.UserURLs{}
+		url := &app.UserURLs{}
 		err := rows.Scan(&url.ShortURL, &url.OriginalURL)
 		if err != nil {
 			return nil, err

@@ -11,6 +11,7 @@ import (
 	"errors"
 	"fmt"
 	"github.com/gin-gonic/gin"
+	"github.com/romm80/shortener.git/internal/app"
 	"github.com/romm80/shortener.git/internal/app/repositories"
 	"github.com/romm80/shortener.git/internal/app/repositories/dbpostgres"
 	"github.com/romm80/shortener.git/internal/app/repositories/mapstorage"
@@ -25,14 +26,6 @@ type Shortener struct {
 	Storage repositories.Shortener
 }
 
-type OriginURL struct {
-	URL string `json:"url"`
-}
-
-type ShortURL struct {
-	Result string `json:"result"`
-}
-
 type gzipWriter struct {
 	gin.ResponseWriter
 	writer *gzip.Writer
@@ -45,6 +38,7 @@ func (r *gzipWriter) Write(b []byte) (int, error) {
 func New() (*Shortener, error) {
 	r := &Shortener{}
 	var err error
+
 	switch server.Cfg.DBType {
 	case server.DBMap:
 		r.Storage, err = mapstorage.New()
@@ -64,6 +58,7 @@ func New() (*Shortener, error) {
 	r.Router.Use(r.AuthMiddleware)
 	r.Router.POST("/", r.Add)
 	r.Router.POST("/api/shorten", r.AddJSON)
+	r.Router.POST("/api/shorten/batch", r.BatchURLs)
 	r.Router.GET("/api/user/urls", r.GetUserURLs)
 
 	return r, nil
@@ -75,9 +70,12 @@ func (s *Shortener) Add(c *gin.Context) {
 		c.AbortWithError(http.StatusInternalServerError, err)
 		return
 	}
-
 	urlID := HashLink(originURL)
-	if err := s.Storage.Add(urlID, string(originURL), c.GetUint64("userid")); err != nil {
+	urls := []app.URLsID{{
+		ID:          urlID,
+		OriginalURL: string(originURL),
+	}}
+	if err := s.Storage.Add(urls, c.GetUint64("userid")); err != nil {
 		c.AbortWithError(http.StatusInternalServerError, err)
 		return
 	}
@@ -85,7 +83,7 @@ func (s *Shortener) Add(c *gin.Context) {
 }
 
 func (s *Shortener) AddJSON(c *gin.Context) {
-	var originURL OriginURL
+	var originURL app.OriginURL
 	if err := json.NewDecoder(c.Request.Body).Decode(&originURL); err != nil {
 		c.AbortWithError(http.StatusBadRequest, err)
 		return
@@ -96,12 +94,17 @@ func (s *Shortener) AddJSON(c *gin.Context) {
 	}
 
 	urlID := HashLink([]byte(originURL.URL))
-	err := s.Storage.Add(urlID, originURL.URL, c.GetUint64("userid"))
+	urls := []app.URLsID{{
+		ID:          urlID,
+		OriginalURL: originURL.URL,
+	}}
+	err := s.Storage.Add(urls, c.GetUint64("userid"))
 	if err != nil {
 		c.AbortWithError(http.StatusInternalServerError, err)
 		return
 	}
-	res := ShortURL{Result: fmt.Sprintf("%s/%s", server.Cfg.BaseURL, urlID)}
+
+	res := app.ShortURL{Result: fmt.Sprintf("%s/%s", server.Cfg.BaseURL, urlID)}
 	c.JSON(http.StatusCreated, res)
 }
 
@@ -116,6 +119,34 @@ func (s *Shortener) Get(c *gin.Context) {
 	c.Redirect(http.StatusTemporaryRedirect, originURL)
 }
 
+func (s *Shortener) BatchURLs(c *gin.Context) {
+	reqBatch := new([]app.RequestBatch)
+	respBatch := make([]app.ResponseBatch, 0)
+
+	if err := json.NewDecoder(c.Request.Body).Decode(reqBatch); err != nil {
+		c.AbortWithError(http.StatusBadRequest, err)
+	}
+
+	urls := make([]app.URLsID, 0)
+	for _, v := range *reqBatch {
+		urlID := HashLink([]byte(v.OriginalURL))
+		urls = append(urls, app.URLsID{
+			ID:          urlID,
+			OriginalURL: v.OriginalURL,
+		})
+		respBatch = append(respBatch, app.ResponseBatch{
+			CorrelationID: v.CorrelationID,
+			ShortURL:      fmt.Sprintf("%s/%s", server.Cfg.BaseURL, urlID),
+		})
+	}
+
+	err := s.Storage.Add(urls, c.GetUint64("userid"))
+	if err != nil {
+		c.AbortWithError(http.StatusInternalServerError, err)
+		return
+	}
+	c.JSON(http.StatusCreated, respBatch)
+}
 func (s *Shortener) GetUserURLs(c *gin.Context) {
 	userID := c.GetUint64("userid")
 	res, err := s.Storage.GetUserURLs(userID)

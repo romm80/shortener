@@ -2,6 +2,7 @@ package handlers
 
 import (
 	"github.com/caarlos0/env/v6"
+	"github.com/romm80/shortener.git/internal/app"
 	"github.com/romm80/shortener.git/internal/app/server"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -83,12 +84,16 @@ func TestShortener_Get(t *testing.T) {
 		log.Fatal(err)
 	}
 	userID, _ := handler.Storage.NewUser()
-	originURL1 := "https://www.google.com/"
-	shortURL1 := HashLink([]byte(originURL1))
-	originURL2 := "https://yandex.ru/"
-	shortURL2 := HashLink([]byte(originURL2))
-	_ = handler.Storage.Add(shortURL1, originURL1, userID)
-	_ = handler.Storage.Add(shortURL2, originURL2, userID)
+	urls := []app.URLsID{{
+		ID:          HashLink([]byte("https://www.google.com/")),
+		OriginalURL: "https://www.google.com/",
+	},
+		{
+			ID:          HashLink([]byte("https://www.yandex.ru/")),
+			OriginalURL: "https://yandex.ru/",
+		}}
+
+	_ = handler.Storage.Add(urls, userID)
 
 	type want struct {
 		status   int
@@ -103,7 +108,7 @@ func TestShortener_Get(t *testing.T) {
 		{
 			name: "Successfully received link 1",
 			path: "/",
-			id:   shortURL1,
+			id:   urls[0].ID,
 			want: want{
 				status:   307,
 				location: "https://www.google.com/",
@@ -112,7 +117,7 @@ func TestShortener_Get(t *testing.T) {
 		{
 			name: "Successfully received link 2",
 			path: "/",
-			id:   shortURL2,
+			id:   urls[1].ID,
 			want: want{
 				status:   307,
 				location: "https://yandex.ru/",
