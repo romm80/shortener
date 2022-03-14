@@ -1,0 +1,3 @@
+DROP TABLE IF EXISTS users;
+DROP TABLE IF EXISTS urls_id;
+DROP TABLE IF EXISTS users_urls;

@@ -14,6 +14,7 @@ import (
 )
 
 func TestShortener_Add(t *testing.T) {
+	server.Cfg.DBType = server.DBMap
 	handler, err := New()
 	if err != nil {
 		log.Fatal(err)
@@ -73,6 +74,7 @@ func TestShortener_Add(t *testing.T) {
 }
 
 func TestShortener_Get(t *testing.T) {
+	server.Cfg.DBType = server.DBMap
 	handler, err := New()
 	if err != nil {
 		log.Fatal(err)
@@ -80,9 +82,13 @@ func TestShortener_Get(t *testing.T) {
 	if err := env.Parse(&server.Cfg); err != nil {
 		log.Fatal(err)
 	}
-	userID := handler.Storage.NewUser()
-	url1, _ := handler.Storage.Add("https://www.google.com/", userID)
-	url2, _ := handler.Storage.Add("https://yandex.ru/", userID)
+	userID, _ := handler.Storage.NewUser()
+	originURL1 := "https://www.google.com/"
+	shortURL1 := HashLink([]byte(originURL1))
+	originURL2 := "https://yandex.ru/"
+	shortURL2 := HashLink([]byte(originURL2))
+	_ = handler.Storage.Add(shortURL1, originURL1, userID)
+	_ = handler.Storage.Add(shortURL2, originURL2, userID)
 
 	type want struct {
 		status   int
@@ -97,7 +103,7 @@ func TestShortener_Get(t *testing.T) {
 		{
 			name: "Successfully received link 1",
 			path: "/",
-			id:   url1,
+			id:   shortURL1,
 			want: want{
 				status:   307,
 				location: "https://www.google.com/",
@@ -106,7 +112,7 @@ func TestShortener_Get(t *testing.T) {
 		{
 			name: "Successfully received link 2",
 			path: "/",
-			id:   url2,
+			id:   shortURL2,
 			want: want{
 				status:   307,
 				location: "https://yandex.ru/",
@@ -138,6 +144,7 @@ func TestShortener_Get(t *testing.T) {
 }
 
 func TestShortener_AddJSON(t *testing.T) {
+	server.Cfg.DBType = server.DBMap
 	handler, err := New()
 	if err != nil {
 		log.Fatal(err)

@@ -2,11 +2,10 @@ package mapstorage
 
 import (
 	"bufio"
-	"crypto/md5"
-	"encoding/hex"
 	"encoding/json"
 	"errors"
 	"fmt"
+	"github.com/romm80/shortener.git/internal/app/repositories"
 	"github.com/romm80/shortener.git/internal/app/server"
 	"os"
 	"sync"
@@ -21,11 +20,6 @@ type MapStorage struct {
 type LinkID struct {
 	ID   string
 	Link string
-}
-
-type UserURLs struct {
-	ShortURL    string `json:"short_url"`
-	OriginalURL string `json:"original_url"`
 }
 
 func New() (*MapStorage, error) {
@@ -57,39 +51,35 @@ func New() (*MapStorage, error) {
 	}, nil
 }
 
-func (s *MapStorage) Add(link string, userID uint64) (string, error) {
-	h := md5.New()
-	h.Write([]byte(link))
-	id := hex.EncodeToString(h.Sum(nil))[:4]
-
-	if _, inMap := s.links[id]; inMap {
-		return id, nil
+func (s *MapStorage) Add(linkID, link string, userID uint64) error {
+	if _, inMap := s.links[linkID]; inMap {
+		return nil
 	}
 
 	s.mu.Lock()
 	defer s.mu.Unlock()
-	s.links[id] = link
-	s.usersLinks[userID][id] = link
+	s.links[linkID] = link
+	s.usersLinks[userID][linkID] = link
 
 	if server.Cfg.FileStorage != "" {
 		file, err := os.OpenFile(server.Cfg.FileStorage, os.O_WRONLY|os.O_APPEND, 0777)
 		if err != nil {
-			return "", err
+			return err
 		}
 		defer file.Close()
 
-		linkID := &LinkID{ID: id, Link: link}
+		linkID := &LinkID{ID: linkID, Link: link}
 		b, err := json.Marshal(linkID)
 		if err != nil {
-			return "", err
+			return err
 		}
 		if _, err := file.Write(append(b, '\n')); err != nil {
-			return "", err
+			return err
 		}
 
 	}
 
-	return id, nil
+	return nil
 }
 
 func (s *MapStorage) Get(id string) (string, error) {
@@ -99,25 +89,30 @@ func (s *MapStorage) Get(id string) (string, error) {
 	return "", errors.New("link not found by id")
 }
 
-func (s *MapStorage) GetUserURLs(userID uint64) []UserURLs {
-	urls := make([]UserURLs, 0)
+func (s *MapStorage) GetUserURLs(userID uint64) ([]repositories.UserURLs, error) {
+	urls := make([]repositories.UserURLs, 0)
 	for k, v := range s.usersLinks[userID] {
-		urls = append(urls, UserURLs{
+		urls = append(urls, repositories.UserURLs{
 			ShortURL:    fmt.Sprintf("%s/%s", server.Cfg.BaseURL, k),
 			OriginalURL: v,
 		})
 	}
-	return urls
+	return urls, nil
 }
-func (s *MapStorage) NewUser() uint64 {
+
+func (s *MapStorage) NewUser() (uint64, error) {
 	s.mu.Lock()
 	id := uint64(len(s.usersLinks) + 1)
 	s.usersLinks[id] = make(map[string]string)
 	s.mu.Unlock()
-	return id
+	return id, nil
 }
 
-func (s *MapStorage) CheckUserID(userID uint64) bool {
+func (s *MapStorage) CheckUserID(userID uint64) (bool, error) {
 	_, inMap := s.usersLinks[userID]
-	return inMap
+	return inMap, nil
+}
+
+func (s *MapStorage) Ping() error {
+	return nil
 }
