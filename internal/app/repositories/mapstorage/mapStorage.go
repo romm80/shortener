@@ -47,7 +47,7 @@ func New() (*MapStorage, error) {
 }
 
 func (s *MapStorage) Add(url string, userID uint64) (string, error) {
-	urlID := repositories.ShortenUrlID(url)
+	urlID := repositories.ShortenURLID(url)
 
 	s.mu.Lock()
 	defer s.mu.Unlock()

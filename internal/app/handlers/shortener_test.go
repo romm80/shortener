@@ -29,11 +29,11 @@ func TestShortener_Add(t *testing.T) {
 
 	urls := []models.URLsID{
 		{
-			ID:          repositories.ShortenUrlID("https://www.google.com/"),
+			ID:          repositories.ShortenURLID("https://www.google.com/"),
 			OriginalURL: "https://www.google.com/",
 		},
 		{
-			ID:          repositories.ShortenUrlID("https://yandex.ru/"),
+			ID:          repositories.ShortenURLID("https://yandex.ru/"),
 			OriginalURL: "https://yandex.ru/",
 		},
 	}

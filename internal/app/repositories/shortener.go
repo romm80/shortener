@@ -17,7 +17,7 @@ type Shortener interface {
 	Ping() error
 }
 
-func ShortenUrlID(url string) string {
+func ShortenURLID(url string) string {
 	h := md5.New()
 	h.Write([]byte(url))
 	return hex.EncodeToString(h.Sum(nil))[:4]

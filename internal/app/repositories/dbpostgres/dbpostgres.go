@@ -17,7 +17,7 @@ type DB struct {
 var (
 	sqlInsertUserURL = `INSERT INTO users_urls (user_id, url_id) VALUES ($1, $2)
 		ON CONFLICT (user_id, url_id) DO NOTHING`
-	sqlInsertUrlID = `WITH extant AS (SELECT id FROM urls_id WHERE (url) = ($2)),
+	sqlInsertURLID = `WITH extant AS (SELECT id FROM urls_id WHERE (url) = ($2)),
 						inserted AS (INSERT INTO urls_id (id, url) 
 							SELECT ($1), ($2)
 							WHERE NOT EXISTS (SELECT NULL FROM extant)
@@ -74,11 +74,11 @@ func (db *DB) Add(url string, userID uint64) (string, error) {
 	}
 	defer tx.Rollback(ctx)
 
-	urlID := repositories.ShortenUrlID(url)
+	urlID := repositories.ShortenURLID(url)
 	var status string
 	var errConflict error
 
-	err = tx.QueryRow(ctx, sqlInsertUrlID, urlID, url).Scan(&urlID, &status)
+	err = tx.QueryRow(ctx, sqlInsertURLID, urlID, url).Scan(&urlID, &status)
 	if err != nil {
 		return "", err
 	}
@@ -111,8 +111,8 @@ func (db *DB) AddBatch(urls []models.RequestBatch, userID uint64) ([]models.Resp
 
 	respBatch := make([]models.ResponseBatch, 0)
 	for _, v := range urls {
-		urlID := repositories.ShortenUrlID(v.OriginalURL)
-		if err = tx.QueryRow(ctx, sqlInsertUrlID, urlID, v.OriginalURL).Scan(&urlID, new(string)); err != nil {
+		urlID := repositories.ShortenURLID(v.OriginalURL)
+		if err = tx.QueryRow(ctx, sqlInsertURLID, urlID, v.OriginalURL).Scan(&urlID, new(string)); err != nil {
 			return nil, err
 		}
 		if _, err = tx.Exec(ctx, sqlInsertUserURL, userID, urlID); err != nil {
@@ -120,7 +120,7 @@ func (db *DB) AddBatch(urls []models.RequestBatch, userID uint64) ([]models.Resp
 		}
 		respBatch = append(respBatch, models.ResponseBatch{
 			CorrelationID: v.CorrelationID,
-			ShortURL:      urlID,
+			ShortURL:      repositories.BaseURL(urlID),
 		})
 	}
 	if err := tx.Commit(ctx); err != nil {
