@@ -1,10 +1,10 @@
-package app
+package models
 
-type OriginURL struct {
+type RequestURL struct {
 	URL string `json:"url"`
 }
 
-type ShortURL struct {
+type ResponseURL struct {
 	Result string `json:"result"`
 }
 

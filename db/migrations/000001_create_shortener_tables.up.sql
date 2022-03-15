@@ -8,6 +8,7 @@ CREATE TABLE IF NOT EXISTS urls_id
     id character varying NOT NULL PRIMARY KEY,
     url character varying NOT NULL
 );
+CREATE UNIQUE INDEX IF NOT EXISTS original_url ON urls_id (url);
 
 CREATE TABLE IF NOT EXISTS users_urls
 (

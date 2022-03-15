@@ -3,7 +3,6 @@ package handlers
 import (
 	"compress/gzip"
 	"crypto/hmac"
-	"crypto/md5"
 	"crypto/sha256"
 	"encoding/binary"
 	"encoding/hex"
@@ -12,6 +11,7 @@ import (
 	"fmt"
 	"github.com/gin-gonic/gin"
 	"github.com/romm80/shortener.git/internal/app"
+	"github.com/romm80/shortener.git/internal/app/models"
 	"github.com/romm80/shortener.git/internal/app/repositories"
 	"github.com/romm80/shortener.git/internal/app/repositories/dbpostgres"
 	"github.com/romm80/shortener.git/internal/app/repositories/mapstorage"
@@ -70,42 +70,43 @@ func (s *Shortener) Add(c *gin.Context) {
 		c.AbortWithError(http.StatusInternalServerError, err)
 		return
 	}
-	urlID := HashLink(originURL)
-	urls := []app.URLsID{{
-		ID:          urlID,
-		OriginalURL: string(originURL),
-	}}
-	if err := s.Storage.Add(urls, c.GetUint64("userid")); err != nil {
-		c.AbortWithError(http.StatusInternalServerError, err)
-		return
+
+	urlID, err := s.Storage.Add(string(originURL), c.GetUint64("userid"))
+	statusCode := http.StatusCreated
+	if err != nil {
+		if errors.Is(err, app.ErrConflictURLID) {
+			statusCode = http.StatusConflict
+		} else {
+			c.AbortWithError(http.StatusInternalServerError, err)
+			return
+		}
 	}
-	c.String(http.StatusCreated, "%s/%s", server.Cfg.BaseURL, urlID)
+	c.String(statusCode, "%s/%s", server.Cfg.BaseURL, urlID)
 }
 
 func (s *Shortener) AddJSON(c *gin.Context) {
-	var originURL app.OriginURL
-	if err := json.NewDecoder(c.Request.Body).Decode(&originURL); err != nil {
+	var request models.RequestURL
+	if err := json.NewDecoder(c.Request.Body).Decode(&request); err != nil {
 		c.AbortWithError(http.StatusBadRequest, err)
 		return
 	}
-	if originURL.URL == "" {
+	if request.URL == "" {
 		c.AbortWithStatus(http.StatusBadRequest)
 		return
 	}
 
-	urlID := HashLink([]byte(originURL.URL))
-	urls := []app.URLsID{{
-		ID:          urlID,
-		OriginalURL: originURL.URL,
-	}}
-	err := s.Storage.Add(urls, c.GetUint64("userid"))
+	urlID, err := s.Storage.Add(request.URL, c.GetUint64("userid"))
+	statusCode := http.StatusCreated
 	if err != nil {
-		c.AbortWithError(http.StatusInternalServerError, err)
-		return
+		if errors.Is(err, app.ErrConflictURLID) {
+			statusCode = http.StatusConflict
+		} else {
+			c.AbortWithError(http.StatusInternalServerError, err)
+			return
+		}
 	}
-
-	res := app.ShortURL{Result: fmt.Sprintf("%s/%s", server.Cfg.BaseURL, urlID)}
-	c.JSON(http.StatusCreated, res)
+	res := models.ResponseURL{Result: fmt.Sprintf("%s/%s", server.Cfg.BaseURL, urlID)}
+	c.JSON(statusCode, res)
 }
 
 func (s *Shortener) Get(c *gin.Context) {
@@ -115,32 +116,16 @@ func (s *Shortener) Get(c *gin.Context) {
 		c.AbortWithStatus(http.StatusBadRequest)
 		return
 	}
-
 	c.Redirect(http.StatusTemporaryRedirect, originURL)
 }
 
 func (s *Shortener) BatchURLs(c *gin.Context) {
-	reqBatch := new([]app.RequestBatch)
-	respBatch := make([]app.ResponseBatch, 0)
-
-	if err := json.NewDecoder(c.Request.Body).Decode(reqBatch); err != nil {
+	reqBatch := make([]models.RequestBatch, 0)
+	if err := json.NewDecoder(c.Request.Body).Decode(&reqBatch); err != nil {
 		c.AbortWithError(http.StatusBadRequest, err)
 	}
 
-	urls := make([]app.URLsID, 0)
-	for _, v := range *reqBatch {
-		urlID := HashLink([]byte(v.OriginalURL))
-		urls = append(urls, app.URLsID{
-			ID:          urlID,
-			OriginalURL: v.OriginalURL,
-		})
-		respBatch = append(respBatch, app.ResponseBatch{
-			CorrelationID: v.CorrelationID,
-			ShortURL:      fmt.Sprintf("%s/%s", server.Cfg.BaseURL, urlID),
-		})
-	}
-
-	err := s.Storage.Add(urls, c.GetUint64("userid"))
+	respBatch, err := s.Storage.AddBatch(reqBatch, c.GetUint64("userid"))
 	if err != nil {
 		c.AbortWithError(http.StatusInternalServerError, err)
 		return
@@ -184,29 +169,15 @@ func (s *Shortener) GzipMiddleware(c *gin.Context) {
 }
 
 func (s *Shortener) AuthMiddleware(c *gin.Context) {
-	var err error
-	var signedID string
-	var isValid bool
 	var userID uint64
 
 	cookie, err := c.Cookie("userid")
-	if err == nil {
-		userID, isValid = validateUserID(cookie)
-		if isValid {
-			isValid, err = s.Storage.CheckUserID(userID)
-			if err != nil {
-				c.AbortWithStatus(http.StatusInternalServerError)
-				return
-			}
-		}
-	}
-
-	if !isValid {
+	if err != nil || !s.validUserID(cookie, &userID) {
 		if userID, err = s.Storage.NewUser(); err != nil {
 			c.AbortWithStatus(http.StatusInternalServerError)
 			return
 		}
-		signedID, err = signUserID(userID)
+		signedID, err := signUserID(userID)
 		if err != nil {
 			c.AbortWithStatus(http.StatusInternalServerError)
 			return
@@ -238,22 +209,16 @@ func signUserID(id uint64) (string, error) {
 	return hex.EncodeToString(append(buf, res...)), nil
 }
 
-func validateUserID(src string) (uint64, bool) {
+func (s *Shortener) validUserID(src string, userID *uint64) bool {
 	data, err := hex.DecodeString(src)
 	if err != nil {
-		return 0, false
+		return false
 	}
 
-	userID := binary.BigEndian.Uint64(data[:8])
+	*userID = binary.BigEndian.Uint64(data[:8])
 	h := hmac.New(sha256.New, server.Cfg.SecretKey)
 	h.Write(data[:8])
 	sign := h.Sum(nil)
 
-	return userID, hmac.Equal(sign, data[8:])
-}
-
-func HashLink(link []byte) string {
-	h := md5.New()
-	h.Write(link)
-	return hex.EncodeToString(h.Sum(nil))[:4]
+	return hmac.Equal(sign, data[8:])
 }

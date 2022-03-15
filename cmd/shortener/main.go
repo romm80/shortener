@@ -23,6 +23,7 @@ func main() {
 
 	server.Cfg.Domain = "localhost"
 	server.Cfg.SecretKey = []byte("very_secret_key")
+
 	server.Cfg.DBType = server.DBMap
 	if server.Cfg.DatabaseDNS != "" {
 		server.Cfg.DBType = server.DBPostgres

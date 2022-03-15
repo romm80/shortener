@@ -2,16 +2,30 @@ package dbpostgres
 
 import (
 	"context"
-	"fmt"
 	"github.com/golang-migrate/migrate/v4"
 	"github.com/jackc/pgx/v4/pgxpool"
 	"github.com/romm80/shortener.git/internal/app"
+	"github.com/romm80/shortener.git/internal/app/models"
+	"github.com/romm80/shortener.git/internal/app/repositories"
 	"github.com/romm80/shortener.git/internal/app/server"
 )
 
 type DB struct {
 	pool *pgxpool.Pool
 }
+
+var (
+	sqlInsertUserURL = `INSERT INTO users_urls (user_id, url_id) VALUES ($1, $2)
+		ON CONFLICT (user_id, url_id) DO NOTHING`
+	sqlInsertUrlID = `WITH extant AS (SELECT id FROM urls_id WHERE (url) = ($2)),
+						inserted AS (INSERT INTO urls_id (id, url) 
+							SELECT ($1), ($2)
+							WHERE NOT EXISTS (SELECT NULL FROM extant)
+							RETURNING id)
+							SELECT id, 'succes' FROM inserted
+							UNION ALL
+							SELECT id, 'conflict' FROM extant`
+)
 
 func New() (*DB, error) {
 
@@ -46,44 +60,74 @@ func migrateDB() error {
 	return nil
 }
 
-func (db *DB) Add(urls []app.URLsID, userID uint64) error {
+func (db *DB) Add(url string, userID uint64) (string, error) {
 	ctx := context.Background()
 	conn, err := db.pool.Acquire(ctx)
 	if err != nil {
-		return err
+		return "", err
 	}
 	defer conn.Release()
 
 	tx, err := conn.Begin(ctx)
 	if err != nil {
-		return err
+		return "", err
 	}
 	defer tx.Rollback(ctx)
 
-	_, err = tx.Prepare(ctx, "url_id", `INSERT INTO urls_id (id, url) VALUES($1, $2) 
-	ON CONFLICT (id) DO UPDATE SET url=excluded.url`)
+	urlID := repositories.ShortenUrlID(url)
+	var status string
+	var errConflict error
+
+	err = tx.QueryRow(ctx, sqlInsertUrlID, urlID, url).Scan(&urlID, &status)
 	if err != nil {
-		return err
+		return "", err
 	}
-	_, err = tx.Prepare(ctx, "user_url", `INSERT INTO users_urls (user_id, url_id) VALUES ($1, $2)
-	ON CONFLICT (user_id, url_id) DO NOTHING`)
-	if err != nil {
-		return err
+	if status == "conflict" {
+		errConflict = app.ErrConflictURLID
+	}
+	if _, err = tx.Exec(ctx, sqlInsertUserURL, userID, urlID); err != nil {
+		return "", err
 	}
 
+	if err := tx.Commit(ctx); err != nil {
+		return "", err
+	}
+	return urlID, errConflict
+}
+
+func (db *DB) AddBatch(urls []models.RequestBatch, userID uint64) ([]models.ResponseBatch, error) {
+	ctx := context.Background()
+	conn, err := db.pool.Acquire(ctx)
+	if err != nil {
+		return nil, err
+	}
+	defer conn.Release()
+
+	tx, err := conn.Begin(ctx)
+	if err != nil {
+		return nil, err
+	}
+	defer tx.Rollback(ctx)
+
+	respBatch := make([]models.ResponseBatch, 0)
 	for _, v := range urls {
-		_, err := tx.Exec(ctx, "url_id", v.ID, v.OriginalURL)
-		if err != nil {
-			return err
+		urlID := repositories.ShortenUrlID(v.OriginalURL)
+		if err = tx.QueryRow(ctx, sqlInsertUrlID, urlID, v.OriginalURL).Scan(&urlID, new(string)); err != nil {
+			return nil, err
 		}
-
-		_, err = tx.Exec(ctx, "user_url", userID, v.ID)
-		if err != nil {
-			return err
+		if _, err = tx.Exec(ctx, sqlInsertUserURL, userID, urlID); err != nil {
+			return nil, err
 		}
+		respBatch = append(respBatch, models.ResponseBatch{
+			CorrelationID: v.CorrelationID,
+			ShortURL:      urlID,
+		})
+	}
+	if err := tx.Commit(ctx); err != nil {
+		return nil, err
 	}
 
-	return tx.Commit(ctx)
+	return respBatch, nil
 }
 
 func (db *DB) Get(id string) (originURL string, err error) {
@@ -100,8 +144,8 @@ func (db *DB) Get(id string) (originURL string, err error) {
 	return
 }
 
-func (db *DB) GetUserURLs(userID uint64) ([]app.UserURLs, error) {
-	urls := make([]app.UserURLs, 0)
+func (db *DB) GetUserURLs(userID uint64) ([]models.UserURLs, error) {
+	urls := make([]models.UserURLs, 0)
 	conn, err := db.pool.Acquire(context.Background())
 	if err != nil {
 		return urls, err
@@ -114,15 +158,15 @@ func (db *DB) GetUserURLs(userID uint64) ([]app.UserURLs, error) {
 		return nil, err
 	}
 	for rows.Next() {
-		url := &app.UserURLs{}
-		err := rows.Scan(&url.ShortURL, &url.OriginalURL)
+		var urlID string
+		url := &models.UserURLs{}
+		err := rows.Scan(&urlID, &url.OriginalURL)
 		if err != nil {
 			return nil, err
 		}
-		url.ShortURL = fmt.Sprintf("%s/%s", server.Cfg.BaseURL, url.ShortURL)
+		url.ShortURL = repositories.BaseURL(urlID)
 		urls = append(urls, *url)
 	}
-
 	return urls, nil
 }
 
@@ -138,23 +182,6 @@ func (db *DB) NewUser() (userID uint64, err error) {
 		return
 	}
 	return
-}
-
-func (db *DB) CheckUserID(userID uint64) (bool, error) {
-	conn, err := db.pool.Acquire(context.Background())
-	if err != nil {
-		return false, err
-	}
-	defer conn.Release()
-
-	row, err := conn.Query(context.Background(), `SELECT id FROM users WHERE id=$1`, userID)
-	if err != nil {
-		return false, err
-	}
-	if row.Next() {
-		return true, nil
-	}
-	return false, nil
 }
 
 func (db *DB) Ping() error {
