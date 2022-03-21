@@ -5,8 +5,8 @@ import (
 	"encoding/json"
 	"errors"
 	"github.com/romm80/shortener.git/internal/app/models"
-	"github.com/romm80/shortener.git/internal/app/repositories"
 	"github.com/romm80/shortener.git/internal/app/server"
+	"github.com/romm80/shortener.git/internal/app/service"
 	"os"
 	"sync"
 )
@@ -47,7 +47,7 @@ func New() (*MapStorage, error) {
 }
 
 func (s *MapStorage) Add(url string, userID uint64) (string, error) {
-	urlID := repositories.ShortenURLID(url)
+	urlID := service.ShortenURLID(url)
 
 	s.mu.Lock()
 	defer s.mu.Unlock()
@@ -93,7 +93,7 @@ func (s *MapStorage) GetUserURLs(userID uint64) ([]models.UserURLs, error) {
 	urls := make([]models.UserURLs, 0)
 	for k, v := range s.usersLinks[userID] {
 		urls = append(urls, models.UserURLs{
-			ShortURL:    repositories.BaseURL(k),
+			ShortURL:    service.BaseURL(k),
 			OriginalURL: v,
 		})
 	}

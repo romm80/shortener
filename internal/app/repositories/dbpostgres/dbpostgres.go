@@ -6,8 +6,8 @@ import (
 	"github.com/jackc/pgx/v4/pgxpool"
 	"github.com/romm80/shortener.git/internal/app"
 	"github.com/romm80/shortener.git/internal/app/models"
-	"github.com/romm80/shortener.git/internal/app/repositories"
 	"github.com/romm80/shortener.git/internal/app/server"
+	"github.com/romm80/shortener.git/internal/app/service"
 )
 
 type DB struct {
@@ -74,7 +74,7 @@ func (db *DB) Add(url string, userID uint64) (string, error) {
 	}
 	defer tx.Rollback(ctx)
 
-	urlID := repositories.ShortenURLID(url)
+	urlID := service.ShortenURLID(url)
 	var status string
 	var errConflict error
 
@@ -111,7 +111,7 @@ func (db *DB) AddBatch(urls []models.RequestBatch, userID uint64) ([]models.Resp
 
 	respBatch := make([]models.ResponseBatch, 0)
 	for _, v := range urls {
-		urlID := repositories.ShortenURLID(v.OriginalURL)
+		urlID := service.ShortenURLID(v.OriginalURL)
 		if err = tx.QueryRow(ctx, sqlInsertURLID, urlID, v.OriginalURL).Scan(&urlID, new(string)); err != nil {
 			return nil, err
 		}
@@ -120,7 +120,7 @@ func (db *DB) AddBatch(urls []models.RequestBatch, userID uint64) ([]models.Resp
 		}
 		respBatch = append(respBatch, models.ResponseBatch{
 			CorrelationID: v.CorrelationID,
-			ShortURL:      repositories.BaseURL(urlID),
+			ShortURL:      service.BaseURL(urlID),
 		})
 	}
 	if err := tx.Commit(ctx); err != nil {
@@ -164,7 +164,7 @@ func (db *DB) GetUserURLs(userID uint64) ([]models.UserURLs, error) {
 		if err != nil {
 			return nil, err
 		}
-		url.ShortURL = repositories.BaseURL(urlID)
+		url.ShortURL = service.BaseURL(urlID)
 		urls = append(urls, *url)
 	}
 	return urls, nil

@@ -3,8 +3,8 @@ package handlers
 import (
 	"github.com/caarlos0/env/v6"
 	"github.com/romm80/shortener.git/internal/app/models"
-	"github.com/romm80/shortener.git/internal/app/repositories"
 	"github.com/romm80/shortener.git/internal/app/server"
+	"github.com/romm80/shortener.git/internal/app/service"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	"io/ioutil"
@@ -29,11 +29,11 @@ func TestShortener_Add(t *testing.T) {
 
 	urls := []models.URLsID{
 		{
-			ID:          repositories.ShortenURLID("https://www.google.com/"),
+			ID:          service.ShortenURLID("https://www.google.com/"),
 			OriginalURL: "https://www.google.com/",
 		},
 		{
-			ID:          repositories.ShortenURLID("https://yandex.ru/"),
+			ID:          service.ShortenURLID("https://yandex.ru/"),
 			OriginalURL: "https://yandex.ru/",
 		},
 	}
@@ -54,7 +54,7 @@ func TestShortener_Add(t *testing.T) {
 			body: urls[0].OriginalURL,
 			want: want{
 				status: 201,
-				body:   repositories.BaseURL(urls[0].ID),
+				body:   service.BaseURL(urls[0].ID),
 			},
 		},
 		{
@@ -63,7 +63,7 @@ func TestShortener_Add(t *testing.T) {
 			body: urls[1].OriginalURL,
 			want: want{
 				status: 201,
-				body:   repositories.BaseURL(urls[1].ID),
+				body:   service.BaseURL(urls[1].ID),
 			},
 		},
 	}

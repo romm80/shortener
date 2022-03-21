@@ -1,10 +1,10 @@
 package repositories
 
 import (
-	"crypto/md5"
-	"encoding/hex"
-	"fmt"
+	"errors"
 	"github.com/romm80/shortener.git/internal/app/models"
+	"github.com/romm80/shortener.git/internal/app/repositories/dbpostgres"
+	"github.com/romm80/shortener.git/internal/app/repositories/mapstorage"
 	"github.com/romm80/shortener.git/internal/app/server"
 )
 
@@ -17,12 +17,21 @@ type Shortener interface {
 	Ping() error
 }
 
-func ShortenURLID(url string) string {
-	h := md5.New()
-	h.Write([]byte(url))
-	return hex.EncodeToString(h.Sum(nil))[:4]
-}
+func NewStorage() (Shortener, error) {
+	var err error
+	var storage Shortener
 
-func BaseURL(urlID string) string {
-	return fmt.Sprintf("%s/%s", server.Cfg.BaseURL, urlID)
+	switch server.Cfg.DBType {
+	case server.DBMap:
+		storage, err = mapstorage.New()
+	case server.DBPostgres:
+		storage, err = dbpostgres.New()
+	default:
+		return nil, errors.New("wrong DB type")
+	}
+	if err != nil {
+		return nil, err
+	}
+
+	return storage, nil
 }
