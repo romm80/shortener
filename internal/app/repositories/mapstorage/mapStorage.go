@@ -2,28 +2,25 @@ package mapstorage
 
 import (
 	"bufio"
-	"crypto/md5"
-	"encoding/hex"
 	"encoding/json"
 	"errors"
+	"github.com/romm80/shortener.git/internal/app/models"
 	"github.com/romm80/shortener.git/internal/app/server"
+	"github.com/romm80/shortener.git/internal/app/service"
 	"os"
 	"sync"
 )
 
 type MapStorage struct {
-	mu    *sync.Mutex
-	links map[string]string
-}
-
-type LinkID struct {
-	ID   string
-	Link string
+	mu         *sync.Mutex
+	links      map[string]string
+	usersLinks map[uint64]map[string]string
 }
 
 func New() (*MapStorage, error) {
 
 	storage := make(map[string]string)
+	usersLinks := make(map[uint64]map[string]string)
 
 	if server.Cfg.FileStorage != "" {
 		file, err := os.OpenFile(server.Cfg.FileStorage, os.O_RDONLY|os.O_CREATE, 0777)
@@ -32,34 +29,32 @@ func New() (*MapStorage, error) {
 		}
 		defer file.Close()
 
-		linkID := &LinkID{}
+		url := &models.URLsID{}
 		scan := bufio.NewScanner(file)
 		for scan.Scan() {
-			if err = json.Unmarshal(scan.Bytes(), linkID); err != nil {
+			if err = json.Unmarshal(scan.Bytes(), url); err != nil {
 				return nil, err
 			}
-			storage[linkID.ID] = linkID.Link
+			storage[url.ID] = url.OriginalURL
 		}
 	}
 
 	return &MapStorage{
-		mu:    &sync.Mutex{},
-		links: storage,
+		mu:         &sync.Mutex{},
+		links:      storage,
+		usersLinks: usersLinks,
 	}, nil
 }
 
-func (s *MapStorage) Add(link string) (string, error) {
-	h := md5.New()
-	h.Write([]byte(link))
-	id := hex.EncodeToString(h.Sum(nil))[:4]
-
-	if _, inMap := s.links[id]; inMap {
-		return id, nil
-	}
+func (s *MapStorage) Add(url string, userID uint64) (string, error) {
+	urlID := service.ShortenURLID(url)
 
 	s.mu.Lock()
 	defer s.mu.Unlock()
-	s.links[id] = link
+
+	s.links[urlID] = url
+	s.usersLinks[userID][urlID] = url
+
 	if server.Cfg.FileStorage != "" {
 		file, err := os.OpenFile(server.Cfg.FileStorage, os.O_WRONLY|os.O_APPEND, 0777)
 		if err != nil {
@@ -67,18 +62,24 @@ func (s *MapStorage) Add(link string) (string, error) {
 		}
 		defer file.Close()
 
-		linkID := &LinkID{ID: id, Link: link}
-		b, err := json.Marshal(linkID)
+		res := &models.URLsID{
+			ID:          urlID,
+			OriginalURL: url,
+		}
+		b, err := json.Marshal(res)
 		if err != nil {
 			return "", err
 		}
 		if _, err := file.Write(append(b, '\n')); err != nil {
 			return "", err
 		}
-
 	}
 
-	return id, nil
+	return urlID, nil
+}
+
+func (s *MapStorage) AddBatch(urls []models.RequestBatch, userID uint64) ([]models.ResponseBatch, error) {
+	return nil, nil
 }
 
 func (s *MapStorage) Get(id string) (string, error) {
@@ -86,4 +87,27 @@ func (s *MapStorage) Get(id string) (string, error) {
 		return val, nil
 	}
 	return "", errors.New("link not found by id")
+}
+
+func (s *MapStorage) GetUserURLs(userID uint64) ([]models.UserURLs, error) {
+	urls := make([]models.UserURLs, 0)
+	for k, v := range s.usersLinks[userID] {
+		urls = append(urls, models.UserURLs{
+			ShortURL:    service.BaseURL(k),
+			OriginalURL: v,
+		})
+	}
+	return urls, nil
+}
+
+func (s *MapStorage) NewUser() (uint64, error) {
+	s.mu.Lock()
+	id := uint64(len(s.usersLinks) + 1)
+	s.usersLinks[id] = make(map[string]string)
+	s.mu.Unlock()
+	return id, nil
+}
+
+func (s *MapStorage) Ping() error {
+	return nil
 }

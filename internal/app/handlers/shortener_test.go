@@ -2,7 +2,9 @@ package handlers
 
 import (
 	"github.com/caarlos0/env/v6"
+	"github.com/romm80/shortener.git/internal/app/models"
 	"github.com/romm80/shortener.git/internal/app/server"
+	"github.com/romm80/shortener.git/internal/app/service"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	"io/ioutil"
@@ -14,12 +16,26 @@ import (
 )
 
 func TestShortener_Add(t *testing.T) {
+	server.Cfg.DBType = server.DBMap
+	server.Cfg.FileStorage = ""
+
 	handler, err := New()
 	if err != nil {
 		log.Fatal(err)
 	}
 	if err := env.Parse(&server.Cfg); err != nil {
 		log.Fatal(err)
+	}
+
+	urls := []models.URLsID{
+		{
+			ID:          service.ShortenURLID("https://www.google.com/"),
+			OriginalURL: "https://www.google.com/",
+		},
+		{
+			ID:          service.ShortenURLID("https://yandex.ru/"),
+			OriginalURL: "https://yandex.ru/",
+		},
 	}
 
 	type want struct {
@@ -35,19 +51,19 @@ func TestShortener_Add(t *testing.T) {
 		{
 			name: "Successfully added link 1",
 			path: "/",
-			body: "https://www.google.com/",
+			body: urls[0].OriginalURL,
 			want: want{
 				status: 201,
-				body:   "http://127.0.0.1:8080/d752",
+				body:   service.BaseURL(urls[0].ID),
 			},
 		},
 		{
 			name: "Successfully added link 2",
 			path: "/",
-			body: "https://yandex.ru/",
+			body: urls[1].OriginalURL,
 			want: want{
 				status: 201,
-				body:   "http://127.0.0.1:8080/30b7",
+				body:   service.BaseURL(urls[1].ID),
 			},
 		},
 	}
@@ -73,6 +89,8 @@ func TestShortener_Add(t *testing.T) {
 }
 
 func TestShortener_Get(t *testing.T) {
+	server.Cfg.DBType = server.DBMap
+	server.Cfg.FileStorage = ""
 	handler, err := New()
 	if err != nil {
 		log.Fatal(err)
@@ -80,8 +98,19 @@ func TestShortener_Get(t *testing.T) {
 	if err := env.Parse(&server.Cfg); err != nil {
 		log.Fatal(err)
 	}
-	url1, _ := handler.Storage.Add("https://www.google.com/")
-	url2, _ := handler.Storage.Add("https://yandex.ru/")
+
+	userID, _ := handler.Storage.NewUser()
+	urls := []models.URLsID{
+		{
+			OriginalURL: "https://www.google.com/",
+		},
+		{
+			OriginalURL: "https://yandex.ru/",
+		},
+	}
+
+	urls[0].ID, _ = handler.Storage.Add(urls[0].OriginalURL, userID)
+	urls[1].ID, _ = handler.Storage.Add(urls[1].OriginalURL, userID)
 
 	type want struct {
 		status   int
@@ -96,19 +125,19 @@ func TestShortener_Get(t *testing.T) {
 		{
 			name: "Successfully received link 1",
 			path: "/",
-			id:   url1,
+			id:   urls[0].ID,
 			want: want{
 				status:   307,
-				location: "https://www.google.com/",
+				location: urls[0].OriginalURL,
 			},
 		},
 		{
 			name: "Successfully received link 2",
 			path: "/",
-			id:   url2,
+			id:   urls[1].ID,
 			want: want{
 				status:   307,
-				location: "https://yandex.ru/",
+				location: urls[1].OriginalURL,
 			},
 		},
 		{
@@ -137,6 +166,7 @@ func TestShortener_Get(t *testing.T) {
 }
 
 func TestShortener_AddJSON(t *testing.T) {
+	server.Cfg.DBType = server.DBMap
 	handler, err := New()
 	if err != nil {
 		log.Fatal(err)
