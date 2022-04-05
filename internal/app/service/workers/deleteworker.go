@@ -19,12 +19,9 @@ func NewDeleteWorker(size int) *DeleteWorker {
 
 func (r *DeleteWorker) Run(fn func(userID uint64, urlsID []string) error) {
 	go func(fn func(userID uint64, urlsID []string) error) {
-		for {
-			select {
-			case task := <-r.Tasks:
-				if err := fn(task.UserID, task.UrlsID); err != nil {
-					log.Println(err)
-				}
+		for task := range r.Tasks {
+			if err := fn(task.UserID, task.UrlsID); err != nil {
+				log.Println(err)
 			}
 		}
 	}(fn)
