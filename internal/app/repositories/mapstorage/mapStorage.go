@@ -111,3 +111,7 @@ func (s *MapStorage) NewUser() (uint64, error) {
 func (s *MapStorage) Ping() error {
 	return nil
 }
+
+func (s *MapStorage) DeleteBatch(userID uint64, urlsID []string) error {
+	return nil
+}

@@ -15,6 +15,7 @@ type Shortener interface {
 	GetUserURLs(userID uint64) ([]models.UserURLs, error)
 	NewUser() (uint64, error)
 	Ping() error
+	DeleteBatch(uint64, []string) error
 }
 
 func NewStorage() (Shortener, error) {

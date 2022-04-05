@@ -5,18 +5,11 @@ CREATE TABLE IF NOT EXISTS users
 
 CREATE TABLE IF NOT EXISTS urls_id
 (
-    id character varying NOT NULL PRIMARY KEY,
-    url character varying NOT NULL
+    url_id character varying PRIMARY KEY,
+    url character varying NOT NULL,
+    user_id bigint NOT NULL,
+    deleted boolean DEFAULT false,
+    CONSTRAINT user_id FOREIGN KEY (user_id)
+        REFERENCES users (id) MATCH SIMPLE
 );
 CREATE UNIQUE INDEX IF NOT EXISTS original_url ON urls_id (url);
-
-CREATE TABLE IF NOT EXISTS users_urls
-(
-    user_id bigint NOT NULL,
-    url_id character varying NOT NULL,
-    CONSTRAINT url_id FOREIGN KEY (url_id)
-        REFERENCES urls_id (id) MATCH SIMPLE,
-    CONSTRAINT user_id FOREIGN KEY (user_id)
-        REFERENCES users (id) MATCH SIMPLE,
-    CONSTRAINT user_urls UNIQUE (user_id, url_id)
-);
