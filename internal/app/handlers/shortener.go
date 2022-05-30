@@ -93,11 +93,15 @@ func (s *Shortener) AddJSON(c *gin.Context) {
 func (s *Shortener) Get(c *gin.Context) {
 	urlID := c.Param("id")
 	originURL, err := s.Storage.Get(urlID)
-	if err != nil && !errors.Is(err, app.ErrDeletedURL) {
+	if err != nil && !errors.Is(err, app.ErrDeletedURL) && !errors.Is(err, app.ErrLinkNoFound) {
 		c.AbortWithStatus(app.ErrStatusCode(err))
 		return
 	}
 	if errors.Is(err, app.ErrDeletedURL) {
+		c.AbortWithStatus(app.ErrStatusCode(err))
+		return
+	}
+	if errors.Is(err, app.ErrLinkNoFound) {
 		c.AbortWithStatus(app.ErrStatusCode(err))
 		return
 	}

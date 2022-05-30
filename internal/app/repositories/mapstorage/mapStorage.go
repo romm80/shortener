@@ -113,7 +113,7 @@ func (s *MapStorage) Get(id string) (string, error) {
 	if val, ok := s.links[id]; ok {
 		return val, nil
 	}
-	return "", errors.New("link not found by id")
+	return "", app.ErrLinkNoFound
 }
 
 func (s *MapStorage) GetUserURLs(userID uint64) ([]models.UserURLs, error) {
