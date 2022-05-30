@@ -1,8 +1,9 @@
 package workers
 
 import (
-	"github.com/romm80/shortener.git/internal/app/repositories"
 	"log"
+
+	"github.com/romm80/shortener.git/internal/app/repositories"
 )
 
 type Task struct {

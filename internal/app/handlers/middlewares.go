@@ -2,11 +2,13 @@ package handlers
 
 import (
 	"compress/gzip"
-	"github.com/gin-gonic/gin"
-	"github.com/romm80/shortener.git/internal/app/server"
-	"github.com/romm80/shortener.git/internal/app/service"
 	"net/http"
 	"strings"
+
+	"github.com/gin-gonic/gin"
+
+	"github.com/romm80/shortener.git/internal/app/server"
+	"github.com/romm80/shortener.git/internal/app/service"
 )
 
 type gzipWriter struct {

@@ -4,12 +4,13 @@ import (
 	"bufio"
 	"encoding/json"
 	"errors"
+	"os"
+	"sync"
+
 	"github.com/romm80/shortener.git/internal/app"
 	"github.com/romm80/shortener.git/internal/app/models"
 	"github.com/romm80/shortener.git/internal/app/server"
 	"github.com/romm80/shortener.git/internal/app/service"
-	"os"
-	"sync"
 )
 
 type MapStorage struct {
