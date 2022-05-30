@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"github.com/gin-contrib/pprof"
 	"github.com/gin-gonic/gin"
 	"github.com/romm80/shortener.git/internal/app"
 	"github.com/romm80/shortener.git/internal/app/models"
@@ -39,6 +40,8 @@ func New() (*Shortener, error) {
 	r.Router.GET("/api/user/urls", r.GetUserURLs)
 	r.Router.DELETE("/api/user/urls", r.DeleteUserURLs)
 
+	pprof.Register(r.Router)
+
 	return r, nil
 }
 
@@ -51,14 +54,14 @@ func (s *Shortener) Add(c *gin.Context) {
 
 	urlID, err := s.Storage.Add(string(originURL), c.GetUint64("userid"))
 	statusCode := http.StatusCreated
-	if err != nil {
-		if errors.Is(err, app.ErrConflictURLID) {
-			statusCode = http.StatusConflict
-		} else {
-			c.AbortWithError(http.StatusInternalServerError, err)
-			return
-		}
+	if err != nil && !errors.Is(err, app.ErrConflictURLID) {
+		c.AbortWithError(http.StatusInternalServerError, err)
+		return
 	}
+	if errors.Is(err, app.ErrConflictURLID) {
+		statusCode = app.ErrStatusCode(err)
+	}
+
 	c.String(statusCode, "%s/%s", server.Cfg.BaseURL, urlID)
 }
 
@@ -75,14 +78,14 @@ func (s *Shortener) AddJSON(c *gin.Context) {
 
 	urlID, err := s.Storage.Add(request.URL, c.GetUint64("userid"))
 	statusCode := http.StatusCreated
-	if err != nil {
-		if errors.Is(err, app.ErrConflictURLID) {
-			statusCode = http.StatusConflict
-		} else {
-			c.AbortWithError(http.StatusInternalServerError, err)
-			return
-		}
+	if err != nil && !errors.Is(err, app.ErrConflictURLID) {
+		c.AbortWithError(http.StatusInternalServerError, err)
+		return
 	}
+	if errors.Is(err, app.ErrConflictURLID) {
+		statusCode = app.ErrStatusCode(err)
+	}
+
 	res := models.ResponseURL{Result: fmt.Sprintf("%s/%s", server.Cfg.BaseURL, urlID)}
 	c.JSON(statusCode, res)
 }
@@ -90,14 +93,15 @@ func (s *Shortener) AddJSON(c *gin.Context) {
 func (s *Shortener) Get(c *gin.Context) {
 	urlID := c.Param("id")
 	originURL, err := s.Storage.Get(urlID)
-	if err != nil {
-		status := http.StatusBadRequest
-		if errors.Is(err, app.ErrDeletedURL) {
-			status = http.StatusGone
-		}
-		c.AbortWithStatus(status)
+	if err != nil && !errors.Is(err, app.ErrDeletedURL) {
+		c.AbortWithStatus(app.ErrStatusCode(err))
 		return
 	}
+	if errors.Is(err, app.ErrDeletedURL) {
+		c.AbortWithStatus(app.ErrStatusCode(err))
+		return
+	}
+
 	c.Redirect(http.StatusTemporaryRedirect, originURL)
 }
 
@@ -108,10 +112,15 @@ func (s *Shortener) BatchURLs(c *gin.Context) {
 	}
 
 	respBatch, err := s.Storage.AddBatch(reqBatch, c.GetUint64("userid"))
-	if err != nil {
+	if err != nil && !errors.Is(err, app.ErrConflictURLID) {
 		c.AbortWithError(http.StatusInternalServerError, err)
 		return
 	}
+	if errors.Is(err, app.ErrConflictURLID) {
+		c.AbortWithError(http.StatusConflict, err)
+		return
+	}
+
 	c.JSON(http.StatusCreated, respBatch)
 }
 func (s *Shortener) GetUserURLs(c *gin.Context) {
