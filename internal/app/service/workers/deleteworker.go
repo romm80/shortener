@@ -1,6 +1,9 @@
 package workers
 
-import "log"
+import (
+	"github.com/romm80/shortener.git/internal/app/repositories"
+	"log"
+)
 
 type Task struct {
 	UserID uint64
@@ -17,16 +20,16 @@ func NewDeleteWorker(size int) *DeleteWorker {
 	}
 }
 
-func (r *DeleteWorker) Run(fn func(userID uint64, urlsID []string) error) {
-	go func(fn func(userID uint64, urlsID []string) error) {
+func (r *DeleteWorker) Run(storage repositories.Shortener) {
+	go func() {
 		for {
 			for task := range r.Tasks {
-				if err := fn(task.UserID, task.UrlsID); err != nil {
+				if err := storage.DeleteBatch(task.UserID, task.UrlsID); err != nil {
 					log.Println(err)
 				}
 			}
 		}
-	}(fn)
+	}()
 }
 
 func (r *DeleteWorker) Add(userID uint64, urlsID []string) {

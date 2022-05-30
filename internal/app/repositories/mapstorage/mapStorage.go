@@ -79,7 +79,19 @@ func (s *MapStorage) Add(url string, userID uint64) (string, error) {
 }
 
 func (s *MapStorage) AddBatch(urls []models.RequestBatch, userID uint64) ([]models.ResponseBatch, error) {
-	return nil, nil
+	respBatch := make([]models.ResponseBatch, 0)
+	for _, v := range urls {
+		urlID, err := s.Add(v.OriginalURL, userID)
+		if err != nil {
+			return nil, err
+		}
+		respBatch = append(respBatch, models.ResponseBatch{
+			CorrelationID: v.CorrelationID,
+			ShortURL:      service.BaseURL(urlID),
+		})
+	}
+
+	return respBatch, nil
 }
 
 func (s *MapStorage) Get(id string) (string, error) {
@@ -113,5 +125,8 @@ func (s *MapStorage) Ping() error {
 }
 
 func (s *MapStorage) DeleteBatch(userID uint64, urlsID []string) error {
+	for _, urlID := range urlsID {
+		delete(s.usersLinks[userID], urlID)
+	}
 	return nil
 }

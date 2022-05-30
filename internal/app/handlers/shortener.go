@@ -26,7 +26,7 @@ func New() (*Shortener, error) {
 	if r.Storage, err = repositories.NewStorage(); err != nil {
 		return nil, err
 	}
-	r.DeleteWorker.Run(r.Storage.DeleteBatch)
+	r.DeleteWorker.Run(r.Storage)
 
 	r.Router = gin.Default()
 	r.Router.GET("/ping", r.PingDB)
