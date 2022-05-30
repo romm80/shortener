@@ -1,6 +1,7 @@
 package handlers
 
 import (
+	"fmt"
 	"github.com/caarlos0/env/v6"
 	"github.com/romm80/shortener.git/internal/app/models"
 	"github.com/romm80/shortener.git/internal/app/server"
@@ -15,6 +16,17 @@ import (
 	"testing"
 )
 
+var urls = []models.URLsID{
+	{
+		ID:          service.ShortenURLID("https://www.google.com/"),
+		OriginalURL: "https://www.google.com/",
+	},
+	{
+		ID:          service.ShortenURLID("https://yandex.ru/"),
+		OriginalURL: "https://yandex.ru/",
+	},
+}
+
 func TestShortener_Add(t *testing.T) {
 	server.Cfg.DBType = server.DBMap
 	server.Cfg.FileStorage = ""
@@ -25,17 +37,6 @@ func TestShortener_Add(t *testing.T) {
 	}
 	if err := env.Parse(&server.Cfg); err != nil {
 		log.Fatal(err)
-	}
-
-	urls := []models.URLsID{
-		{
-			ID:          service.ShortenURLID("https://www.google.com/"),
-			OriginalURL: "https://www.google.com/",
-		},
-		{
-			ID:          service.ShortenURLID("https://yandex.ru/"),
-			OriginalURL: "https://yandex.ru/",
-		},
 	}
 
 	type want struct {
@@ -167,6 +168,7 @@ func TestShortener_Get(t *testing.T) {
 
 func TestShortener_AddJSON(t *testing.T) {
 	server.Cfg.DBType = server.DBMap
+
 	handler, err := New()
 	if err != nil {
 		log.Fatal(err)
@@ -189,21 +191,21 @@ func TestShortener_AddJSON(t *testing.T) {
 		{
 			name: "Successfully added link 1",
 			path: "/api/shorten",
-			body: `{"url":"https://practicum.yandex.ru"}`,
+			body: fmt.Sprintf(`{"url":"%s"}`, urls[0].OriginalURL),
 			want: want{
 				status:      201,
 				contentType: "application/json; charset=utf-8",
-				body:        `{"result":"http://127.0.0.1:8080/6bdb"}`,
+				body:        fmt.Sprintf(`{"result":"%s"}`, service.BaseURL(urls[0].ID)),
 			},
 		},
 		{
 			name: "Successfully added link 2",
 			path: "/api/shorten",
-			body: `{"url":"https://yandex.ru/"}`,
+			body: fmt.Sprintf(`{"url":"%s"}`, urls[1].OriginalURL),
 			want: want{
 				status:      201,
 				contentType: "application/json; charset=utf-8",
-				body:        `{"result":"http://127.0.0.1:8080/30b7"}`,
+				body:        fmt.Sprintf(`{"result":"%s"}`, service.BaseURL(urls[1].ID)),
 			},
 		},
 		{

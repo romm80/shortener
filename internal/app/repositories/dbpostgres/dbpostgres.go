@@ -15,16 +15,13 @@ type DB struct {
 }
 
 var (
-	sqlInsertUserURL = `INSERT INTO users_urls (user_id, url_id) VALUES ($1, $2)
-		ON CONFLICT (user_id, url_id) DO NOTHING`
-	sqlInsertURLID = `WITH extant AS (SELECT id FROM urls_id WHERE (url) = ($2)),
-						inserted AS (INSERT INTO urls_id (id, url) 
-							SELECT ($1), ($2)
-							WHERE NOT EXISTS (SELECT NULL FROM extant)
-							RETURNING id)
-							SELECT id, 'succes' FROM inserted
+	sqlInsertURLID = `WITH 	extant AS 	(SELECT url_id FROM urls_id WHERE url = ($2)),
+							inserted AS (INSERT INTO urls_id (url_id, url, user_id) SELECT ($1), ($2), ($3)
+											WHERE NOT EXISTS (SELECT NULL FROM extant)
+											RETURNING url_id)
+							SELECT url_id, 'succes' FROM inserted
 							UNION ALL
-							SELECT id, 'conflict' FROM extant`
+							SELECT url_id, 'conflict' FROM extant`
 )
 
 func New() (*DB, error) {
@@ -78,15 +75,12 @@ func (db *DB) Add(url string, userID uint64) (string, error) {
 	var status string
 	var errConflict error
 
-	err = tx.QueryRow(ctx, sqlInsertURLID, urlID, url).Scan(&urlID, &status)
+	err = tx.QueryRow(ctx, sqlInsertURLID, urlID, url, userID).Scan(&urlID, &status)
 	if err != nil {
 		return "", err
 	}
 	if status == "conflict" {
 		errConflict = app.ErrConflictURLID
-	}
-	if _, err = tx.Exec(ctx, sqlInsertUserURL, userID, urlID); err != nil {
-		return "", err
 	}
 
 	if err := tx.Commit(ctx); err != nil {
@@ -112,10 +106,7 @@ func (db *DB) AddBatch(urls []models.RequestBatch, userID uint64) ([]models.Resp
 	respBatch := make([]models.ResponseBatch, 0)
 	for _, v := range urls {
 		urlID := service.ShortenURLID(v.OriginalURL)
-		if err = tx.QueryRow(ctx, sqlInsertURLID, urlID, v.OriginalURL).Scan(&urlID, new(string)); err != nil {
-			return nil, err
-		}
-		if _, err = tx.Exec(ctx, sqlInsertUserURL, userID, urlID); err != nil {
+		if err = tx.QueryRow(ctx, sqlInsertURLID, urlID, v.OriginalURL, userID).Scan(&urlID, new(string)); err != nil {
 			return nil, err
 		}
 		respBatch = append(respBatch, models.ResponseBatch{
@@ -137,9 +128,13 @@ func (db *DB) Get(id string) (originURL string, err error) {
 	}
 	defer conn.Release()
 
-	err = conn.QueryRow(context.Background(), "SELECT url FROM urls_id WHERE id=$1", id).Scan(&originURL)
+	deleted := false
+	err = conn.QueryRow(context.Background(), `SELECT url, deleted FROM urls_id WHERE url_id=$1`, id).Scan(&originURL, &deleted)
 	if err != nil {
 		return
+	}
+	if deleted {
+		err = app.ErrDeletedURL
 	}
 	return
 }
@@ -152,8 +147,7 @@ func (db *DB) GetUserURLs(userID uint64) ([]models.UserURLs, error) {
 	}
 	defer conn.Release()
 
-	rows, err := conn.Query(context.Background(), `SELECT t1.url_id, t2.url FROM users_urls AS t1 
-	INNER JOIN urls_id AS t2 ON t1.url_id = t2.id AND t1.user_id = $1`, userID)
+	rows, err := conn.Query(context.Background(), `SELECT url_id, url FROM urls_id WHERE user_id=($1)`, userID)
 	if err != nil {
 		return nil, err
 	}
@@ -186,4 +180,31 @@ func (db *DB) NewUser() (userID uint64, err error) {
 
 func (db *DB) Ping() error {
 	return db.pool.Ping(context.Background())
+}
+
+func (db *DB) DeleteBatch(userID uint64, urlsID []string) error {
+
+	ctx := context.Background()
+	conn, err := db.pool.Acquire(ctx)
+	if err != nil {
+		return err
+	}
+	defer conn.Release()
+
+	tx, err := conn.Begin(ctx)
+	if err != nil {
+		return err
+	}
+	defer tx.Rollback(ctx)
+
+	_, err = tx.Exec(ctx, `UPDATE urls_id SET deleted=true WHERE user_id = ($1) AND url_id = any($2)`, userID, urlsID)
+	if err != nil {
+		return err
+	}
+
+	if err := tx.Commit(ctx); err != nil {
+		return err
+	}
+
+	return nil
 }

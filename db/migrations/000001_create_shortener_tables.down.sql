@@ -1,4 +1,3 @@
 DROP TABLE IF EXISTS users;
 DROP INDEX IF EXISTS original_url;
 DROP TABLE IF EXISTS urls_id;
-DROP TABLE IF EXISTS users_urls;
