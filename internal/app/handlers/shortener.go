@@ -17,6 +17,12 @@ import (
 	"github.com/romm80/shortener.git/internal/app/service/workers"
 )
 
+// @title           Shortener API
+// @version         1.0
+// @description     Сервис сокращения ссылок.
+
+// @host      localhost:8080
+
 type Shortener struct {
 	Router       *gin.Engine
 	Storage      repositories.Shortener
@@ -47,6 +53,15 @@ func New() (*Shortener, error) {
 	return r, nil
 }
 
+// Add godoc
+// @Summary      Добавляет ссылку
+// @Description  Сокращает полученную ссылку и добавляет в БД
+// @Accept       plain
+// @Produce      plain
+// @Param RequestURL body string true "Ссылка для сокращения"
+// @Success 201 {string} string "Cокращенная ссылка"
+// @Failure 500 {string} string "Внутренняя ошибка"
+// @Router       / [post]
 func (s *Shortener) Add(c *gin.Context) {
 	originURL, err := ioutil.ReadAll(c.Request.Body)
 	if err != nil {
@@ -67,6 +82,16 @@ func (s *Shortener) Add(c *gin.Context) {
 	c.String(statusCode, "%s/%s", server.Cfg.BaseURL, urlID)
 }
 
+// AddJSON godoc
+// @Summary      Добавляет ссылку
+// @Description  Сокращает полученную ссылку и добавляет в БД
+// @Accept       json
+// @Produce      json
+// @Param RequestURL body models.RequestURL true "Ссылка для сокращения"
+// @Success 201 {object} models.ResponseURL
+// @Failure 400 {string} string "Неверный запрос"
+// @Failure 500 {string} string "Внутренняя ошибка"
+// @Router       /api/shorten [post]
 func (s *Shortener) AddJSON(c *gin.Context) {
 	var request models.RequestURL
 	if err := json.NewDecoder(c.Request.Body).Decode(&request); err != nil {
@@ -92,6 +117,15 @@ func (s *Shortener) AddJSON(c *gin.Context) {
 	c.JSON(statusCode, res)
 }
 
+// Get godoc
+// @Summary      Перенаправляет по сокращенной ссылке на оригинальную
+// @Description  Перенаправляет по сокращенной ссылке на оригинальную
+// @Param шв id path string true "Link ID"
+// @Success 307	{string} string "Перенапралено на оригинальную ссылку"
+// @Failure 400 {string} string "Ссылка не найдена"
+// @Failure 410 {string} string "Ссылка удалена"
+// @Failure 500 {string} string "Внутренняя ошибка"
+// @Router /{id} [get]
 func (s *Shortener) Get(c *gin.Context) {
 	urlID := c.Param("id")
 	originURL, err := s.Storage.Get(urlID)
@@ -111,6 +145,17 @@ func (s *Shortener) Get(c *gin.Context) {
 	c.Redirect(http.StatusTemporaryRedirect, originURL)
 }
 
+// BatchURLs godoc
+// @Summary      Добавляет пакет ссылкок
+// @Description  Сокращает полученные ссылки и добавляет в БД
+// @Accept       json
+// @Produce      json
+// @Param RequestURL body []models.RequestBatch true "Ссылки для сокращения"
+// @Success 201 {object} []models.ResponseBatch
+// @Failure 400 {string} string "Неверный запрос"
+// @Failure 409 {string} string "Добавляемая ссылка уже существует"
+// @Failure 500 {string} string "Внутренняя ошибка"
+// @Router       /api/shorten/batch [post]
 func (s *Shortener) BatchURLs(c *gin.Context) {
 	reqBatch := make([]models.RequestBatch, 0)
 	if err := json.NewDecoder(c.Request.Body).Decode(&reqBatch); err != nil {
@@ -129,6 +174,16 @@ func (s *Shortener) BatchURLs(c *gin.Context) {
 
 	c.JSON(http.StatusCreated, respBatch)
 }
+
+// GetUserURLs godoc
+// @Summary      Возвращает список ссылок добавленных пользователем
+// @Description  Возвращает список ссылок добавленных пользователем
+// @Accept       json
+// @Produce      json
+// @Success 200 {object} []models.UserURLs
+// @Success 204 {string} string "У пользователя нет ссылок"
+// @Failure 500 {string} string "Внутренняя ошибка"
+// @Router       /api/user/urls [get]
 func (s *Shortener) GetUserURLs(c *gin.Context) {
 	userID := c.GetUint64("userid")
 	res, err := s.Storage.GetUserURLs(userID)
@@ -143,6 +198,12 @@ func (s *Shortener) GetUserURLs(c *gin.Context) {
 	c.JSON(http.StatusOK, res)
 }
 
+// PingDB godoc
+// @Summary      Проверка соединения с БД
+// @Description  Проверка соединения с БД
+// @Success 200 {string} string "Успешное соединение"
+// @Failure 500 {string} string "Внутренняя ошибка"
+// @Router       /ping [get]
 func (s *Shortener) PingDB(c *gin.Context) {
 	if err := s.Storage.Ping(); err != nil {
 		c.AbortWithError(http.StatusInternalServerError, err)
@@ -151,6 +212,15 @@ func (s *Shortener) PingDB(c *gin.Context) {
 	c.Status(http.StatusOK)
 }
 
+// DeleteUserURLs godoc
+// @Summary      Удаляет ссылки пользователя по ID
+// @Description  Возвращает список ссылок добавленных пользователем
+// @Accept       json
+// @Produce      json
+// @Param urlsID body []string true "ID ссылок для удаления"
+// @Success 202 {string} string "Запрос приянт в обработку"
+// @Success 400 {string} string "Неверный запрос"
+// @Router       /api/user/urls [post]
 func (s *Shortener) DeleteUserURLs(c *gin.Context) {
 	urlsID := make([]string, 0)
 	if err := c.BindJSON(&urlsID); err != nil {

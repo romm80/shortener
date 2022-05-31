@@ -98,7 +98,7 @@ func (s *MapStorage) AddBatch(urls []models.RequestBatch, userID uint64) ([]mode
 			return nil, err
 		}
 		if errors.Is(err, app.ErrConflictURLID) {
-			continue
+			return nil, err
 		}
 
 		respBatch = append(respBatch, models.ResponseBatch{

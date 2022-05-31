@@ -11,16 +11,19 @@ import (
 	"github.com/romm80/shortener.git/internal/app/server"
 )
 
+// ShortenURLID возвращает сгенирированный id сокращенной ссылки вычислением контрольной суммы md5
 func ShortenURLID(url string) string {
 	h := md5.New()
 	h.Write([]byte(url))
 	return hex.EncodeToString(h.Sum(nil))[:4]
 }
 
+// BaseURL возвращает адрес сокращенной ссылки по id
 func BaseURL(urlID string) string {
 	return fmt.Sprintf("%s/%s", server.Cfg.BaseURL, urlID)
 }
 
+// SignUserID возвращает симметрично подписанную куку, содержащую id пользователя
 func SignUserID(id uint64) (string, error) {
 	buf := make([]byte, 8)
 	binary.BigEndian.PutUint64(buf, id)
@@ -33,6 +36,7 @@ func SignUserID(id uint64) (string, error) {
 	return hex.EncodeToString(append(buf, res...)), nil
 }
 
+// ValidUserID проверяет подписанную куку
 func ValidUserID(src string, userID *uint64) bool {
 	data, err := hex.DecodeString(src)
 	if err != nil {
