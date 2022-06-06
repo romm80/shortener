@@ -94,6 +94,9 @@ func (list *URLsList) AddBatch(urls []models.RequestBatch, userID uint64) ([]mod
 		if err != nil && !errors.Is(err, app.ErrConflictURLID) {
 			return nil, err
 		}
+		if errors.Is(err, app.ErrConflictURLID) {
+			continue
+		}
 
 		respBatch = append(respBatch, models.ResponseBatch{
 			CorrelationID: v.CorrelationID,

@@ -312,14 +312,6 @@ func TestShortener_BatchURLs(t *testing.T) {
 			},
 		},
 		{
-			name: "duplicated links",
-			path: batchPath,
-			body: string(reqJSON),
-			want: want{
-				status: 409,
-			},
-		},
-		{
 			name: "invalid json",
 			path: batchPath,
 			body: `{"url2":"https://yandex.ru/"}`,
