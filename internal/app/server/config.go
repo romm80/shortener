@@ -1,29 +1,30 @@
 package server
 
-// Config хранит настройки сервера
+// Config stores server settings
 type Config struct {
-	// SrvAddr - адрес сервера
+	// SrvAddr - server address
 	SrvAddr string `env:"SERVER_ADDRESS" envDefault:"127.0.0.1:8080"`
-	// BaseURL - адрес для формированя сокращенной ссылки
+	// BaseURL - host for generated shortener link id
 	BaseURL string `env:"BASE_URL" envDefault:"http://127.0.0.1:8080"`
-	// FileStorage - путь к файлу хранения сокращенных ссылок
+	// FileStorage - path to the shortened link storage file
 	FileStorage string `env:"FILE_STORAGE_PATH"`
-	// DatabaseDNS - строка подключения к postgres
+	// DatabaseDNS - connection string to postgres
 	DatabaseDNS string `env:"DATABASE_DSN" envDefault:""`
-	// DBType - тип базы данных используемый для записи сокращенных ссылок
+	// DBType - database type used to store shortened links
 	DBType DBType
-	// Domain - домен, используется для заполнения в cookie
+	// Domain - domain used to fill in the cookie
 	Domain string
-	// SecretKey - ключ для подписи
+	// SecretKey - signing key
 	SecretKey []byte
 }
 
-// DBType - тип базы данных используемый для записи сокращенных ссылок
+// DBType - database type used to store shortened links
 type DBType string
 
 var Cfg Config
 
 const (
-	DBMap      DBType = "DBMap"
-	DBPostgres DBType = "DBPostgres"
+	DBMap        DBType = "DBMap"
+	DBPostgres   DBType = "DBPostgres"
+	DBLinkedList DBType = "DBLinkedList"
 )

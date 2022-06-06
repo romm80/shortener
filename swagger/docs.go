@@ -18,17 +18,17 @@ const docTemplate = `{
     "paths": {
         "/": {
             "post": {
-                "description": "Сокращает полученную ссылку и добавляет в БД",
+                "description": "Shortens the received link and adds it to the database",
                 "consumes": [
                     "text/plain"
                 ],
                 "produces": [
                     "text/plain"
                 ],
-                "summary": "Добавляет ссылку",
+                "summary": "Adds a link",
                 "parameters": [
                     {
-                        "description": "Ссылка для сокращения",
+                        "description": "original link",
                         "name": "RequestURL",
                         "in": "body",
                         "required": true,
@@ -39,13 +39,13 @@ const docTemplate = `{
                 ],
                 "responses": {
                     "201": {
-                        "description": "Cокращенная ссылка",
+                        "description": "short link",
                         "schema": {
                             "type": "string"
                         }
                     },
                     "500": {
-                        "description": "Внутренняя ошибка",
+                        "description": "internal error",
                         "schema": {
                             "type": "string"
                         }
@@ -55,17 +55,17 @@ const docTemplate = `{
         },
         "/api/shorten": {
             "post": {
-                "description": "Сокращает полученную ссылку и добавляет в БД",
+                "description": "Shortens the received link and adds it to the database",
                 "consumes": [
                     "application/json"
                 ],
                 "produces": [
                     "application/json"
                 ],
-                "summary": "Добавляет ссылку",
+                "summary": "Adds a link",
                 "parameters": [
                     {
-                        "description": "Ссылка для сокращения",
+                        "description": "original link",
                         "name": "RequestURL",
                         "in": "body",
                         "required": true,
@@ -76,19 +76,19 @@ const docTemplate = `{
                 ],
                 "responses": {
                     "201": {
-                        "description": "Created",
+                        "description": "short link",
                         "schema": {
                             "$ref": "#/definitions/models.ResponseURL"
                         }
                     },
                     "400": {
-                        "description": "Неверный запрос",
+                        "description": "invalid request",
                         "schema": {
                             "type": "string"
                         }
                     },
                     "500": {
-                        "description": "Внутренняя ошибка",
+                        "description": "internal error",
                         "schema": {
                             "type": "string"
                         }
@@ -98,17 +98,17 @@ const docTemplate = `{
         },
         "/api/shorten/batch": {
             "post": {
-                "description": "Сокращает полученные ссылки и добавляет в БД",
+                "description": "Shortens the link batch and adds it to the database",
                 "consumes": [
                     "application/json"
                 ],
                 "produces": [
                     "application/json"
                 ],
-                "summary": "Добавляет пакет ссылкок",
+                "summary": "adds a links batch",
                 "parameters": [
                     {
-                        "description": "Ссылки для сокращения",
+                        "description": "original links",
                         "name": "RequestURL",
                         "in": "body",
                         "required": true,
@@ -122,7 +122,7 @@ const docTemplate = `{
                 ],
                 "responses": {
                     "201": {
-                        "description": "Created",
+                        "description": "short links",
                         "schema": {
                             "type": "array",
                             "items": {
@@ -131,19 +131,19 @@ const docTemplate = `{
                         }
                     },
                     "400": {
-                        "description": "Неверный запрос",
+                        "description": "invalid request",
                         "schema": {
                             "type": "string"
                         }
                     },
                     "409": {
-                        "description": "Добавляемая ссылка уже существует",
+                        "description": "added link is already exist",
                         "schema": {
                             "type": "string"
                         }
                     },
                     "500": {
-                        "description": "Внутренняя ошибка",
+                        "description": "internal error",
                         "schema": {
                             "type": "string"
                         }
@@ -153,14 +153,14 @@ const docTemplate = `{
         },
         "/api/user/urls": {
             "get": {
-                "description": "Возвращает список ссылок добавленных пользователем",
+                "description": "Returns a list of links added by the user",
                 "consumes": [
                     "application/json"
                 ],
                 "produces": [
                     "application/json"
                 ],
-                "summary": "Возвращает список ссылок добавленных пользователем",
+                "summary": "Returns a list of links added by the user",
                 "responses": {
                     "200": {
                         "description": "OK",
@@ -172,13 +172,13 @@ const docTemplate = `{
                         }
                     },
                     "204": {
-                        "description": "У пользователя нет ссылок",
+                        "description": "user has no links",
                         "schema": {
                             "type": "string"
                         }
                     },
                     "500": {
-                        "description": "Внутренняя ошибка",
+                        "description": "internal error",
                         "schema": {
                             "type": "string"
                         }
@@ -186,17 +186,17 @@ const docTemplate = `{
                 }
             },
             "post": {
-                "description": "Возвращает список ссылок добавленных пользователем",
+                "description": "Removes user links by shortened ID",
                 "consumes": [
                     "application/json"
                 ],
                 "produces": [
                     "application/json"
                 ],
-                "summary": "Удаляет ссылки пользователя по ID",
+                "summary": "Removes user links by shortened ID",
                 "parameters": [
                     {
-                        "description": "ID ссылок для удаления",
+                        "description": "Link IDs to remove",
                         "name": "urlsID",
                         "in": "body",
                         "required": true,
@@ -210,13 +210,13 @@ const docTemplate = `{
                 ],
                 "responses": {
                     "202": {
-                        "description": "Запрос приянт в обработку",
+                        "description": "request accepted for processing",
                         "schema": {
                             "type": "string"
                         }
                     },
                     "400": {
-                        "description": "Неверный запрос",
+                        "description": "invalid request",
                         "schema": {
                             "type": "string"
                         }
@@ -226,17 +226,17 @@ const docTemplate = `{
         },
         "/ping": {
             "get": {
-                "description": "Проверка соединения с БД",
-                "summary": "Проверка соединения с БД",
+                "description": "Checking the database connection",
+                "summary": "Checking the database connection",
                 "responses": {
                     "200": {
-                        "description": "Успешное соединение",
+                        "description": "successful connection",
                         "schema": {
                             "type": "string"
                         }
                     },
                     "500": {
-                        "description": "Внутренняя ошибка",
+                        "description": "internal error",
                         "schema": {
                             "type": "string"
                         }
@@ -246,8 +246,8 @@ const docTemplate = `{
         },
         "/{id}": {
             "get": {
-                "description": "Перенаправляет по сокращенной ссылке на оригинальную",
-                "summary": "Перенаправляет по сокращенной ссылке на оригинальную",
+                "description": "Redirects via a shortened link to the original",
+                "summary": "Redirects via a shortened link to the original",
                 "parameters": [
                     {
                         "type": "string",
@@ -259,25 +259,25 @@ const docTemplate = `{
                 ],
                 "responses": {
                     "307": {
-                        "description": "Перенапралено на оригинальную ссылку",
+                        "description": "successfully redirected",
                         "schema": {
                             "type": "string"
                         }
                     },
                     "400": {
-                        "description": "Ссылка не найдена",
+                        "description": "Link not found",
                         "schema": {
                             "type": "string"
                         }
                     },
                     "410": {
-                        "description": "Ссылка удалена",
+                        "description": "Link removed",
                         "schema": {
                             "type": "string"
                         }
                     },
                     "500": {
-                        "description": "Внутренняя ошибка",
+                        "description": "internal error",
                         "schema": {
                             "type": "string"
                         }
@@ -346,7 +346,7 @@ var SwaggerInfo = &swag.Spec{
 	BasePath:         "",
 	Schemes:          []string{},
 	Title:            "Shortener API",
-	Description:      "Сервис сокращения ссылок.",
+	Description:      "Link shortening service.",
 	InfoInstanceName: "swagger",
 	SwaggerTemplate:  docTemplate,
 }

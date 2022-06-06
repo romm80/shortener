@@ -1,4 +1,4 @@
-// Модуль workers предназначен для конфигурирования воркера удаления ссылок
+// Package workers implements workers pool to remove references
 package workers
 
 import (
@@ -7,25 +7,25 @@ import (
 	"github.com/romm80/shortener.git/internal/app/repositories"
 )
 
-// Task задача для удаления ссылок
+// Task - task to remove links
 type Task struct {
-	UserID uint64   // id пользователя
-	UrlsID []string // id сокращенных ссылок для удаления
+	UserID uint64   // user id
+	UrlsID []string // list of shortened links IDs to remove
 }
 
-// DeleteWorker воркер для удаления ссылок
+// DeleteWorker link remover worker
 type DeleteWorker struct {
 	Tasks chan Task // канал задач удаляемых ссылок
 }
 
-// NewDeleteWorker инициализация воркера
+// NewDeleteWorker worker initialization
 func NewDeleteWorker(size int) *DeleteWorker {
 	return &DeleteWorker{
 		Tasks: make(chan Task, size),
 	}
 }
 
-// Run запуск воркера для удаления ссылок из репозитория
+// Run starts a worker
 func (r *DeleteWorker) Run(storage repositories.Shortener) {
 	go func() {
 		for {
@@ -38,7 +38,7 @@ func (r *DeleteWorker) Run(storage repositories.Shortener) {
 	}()
 }
 
-// Add добавления задачи на удаление в канал
+// Add add a delete task to a channel
 func (r *DeleteWorker) Add(userID uint64, urlsID []string) {
 	go func(userID uint64, urlsID []string) {
 		r.Tasks <- Task{

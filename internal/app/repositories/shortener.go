@@ -1,8 +1,9 @@
-// Модуль repositories предназначен для работы с репозиторием
+// Package repositories implements an interface for working with the repository
 package repositories
 
 import (
 	"errors"
+	"github.com/romm80/shortener.git/internal/app/repositories/linkedliststorage"
 
 	"github.com/romm80/shortener.git/internal/app/models"
 	"github.com/romm80/shortener.git/internal/app/repositories/dbpostgres"
@@ -10,18 +11,18 @@ import (
 	"github.com/romm80/shortener.git/internal/app/server"
 )
 
-// Shortener интерфейс для работы с репозиторием
+// Shortener repository interface
 type Shortener interface {
-	Add(url string, userID uint64) (string, error)                                      // добавляет ссылку по id пользователя
-	AddBatch(urls []models.RequestBatch, userID uint64) ([]models.ResponseBatch, error) // добавляет пакет ссылок по id пользователя
-	Get(id string) (string, error)                                                      // возвращает полную ссылку по сокращенному id
-	GetUserURLs(userID uint64) ([]models.UserURLs, error)                               // возвращает сокращенные пользователем ммылки
-	NewUser() (uint64, error)                                                           // добавляет нового пользователя
-	Ping() error                                                                        // проверка доступности базы данных
-	DeleteBatch(uint64, []string) error                                                 // пакетное удаление ссылок по id пользователя
+	Add(url string, userID uint64) (string, error)                                      // adds a link by user id
+	AddBatch(urls []models.RequestBatch, userID uint64) ([]models.ResponseBatch, error) // adds a batch of links by user id
+	Get(id string) (string, error)                                                      // returns original link by id
+	GetUserURLs(userID uint64) ([]models.UserURLs, error)                               // returns user shortened links
+	NewUser() (uint64, error)                                                           // adds a new user
+	Ping() error                                                                        // database connection check
+	DeleteBatch(uint64, []string) error                                                 // batch deleting links by user id
 }
 
-// NewStorage возвращает инициализированное подключение к базе данных
+// NewStorage returns an initialized database connection
 func NewStorage() (Shortener, error) {
 	var err error
 	var storage Shortener
@@ -31,6 +32,8 @@ func NewStorage() (Shortener, error) {
 		storage, err = mapstorage.New()
 	case server.DBPostgres:
 		storage, err = dbpostgres.New()
+	case server.DBLinkedList:
+		storage = linkedliststorage.New()
 	default:
 		return nil, errors.New("wrong DB type")
 	}

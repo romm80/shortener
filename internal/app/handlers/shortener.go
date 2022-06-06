@@ -19,7 +19,7 @@ import (
 
 // @title           Shortener API
 // @version         1.0
-// @description     Сервис сокращения ссылок.
+// @description     Link shortening service.
 
 // @host      localhost:8080
 
@@ -54,13 +54,13 @@ func New() (*Shortener, error) {
 }
 
 // Add godoc
-// @Summary      Добавляет ссылку
-// @Description  Сокращает полученную ссылку и добавляет в БД
+// @Summary      Adds a link
+// @Description  Shortens the received link and adds it to the database
 // @Accept       plain
 // @Produce      plain
-// @Param RequestURL body string true "Ссылка для сокращения"
-// @Success 201 {string} string "Cокращенная ссылка"
-// @Failure 500 {string} string "Внутренняя ошибка"
+// @Param RequestURL body string true "original link"
+// @Success 201 {string} string "short link"
+// @Failure 500 {string} string "internal error"
 // @Router       / [post]
 func (s *Shortener) Add(c *gin.Context) {
 	originURL, err := ioutil.ReadAll(c.Request.Body)
@@ -83,14 +83,14 @@ func (s *Shortener) Add(c *gin.Context) {
 }
 
 // AddJSON godoc
-// @Summary      Добавляет ссылку
-// @Description  Сокращает полученную ссылку и добавляет в БД
+// @Summary      Adds a link
+// @Description  Shortens the received link and adds it to the database
 // @Accept       json
 // @Produce      json
-// @Param RequestURL body models.RequestURL true "Ссылка для сокращения"
-// @Success 201 {object} models.ResponseURL
-// @Failure 400 {string} string "Неверный запрос"
-// @Failure 500 {string} string "Внутренняя ошибка"
+// @Param RequestURL body models.RequestURL true "original link"
+// @Success 201 {object} models.ResponseURL "short link"
+// @Failure 400 {string} string "invalid request"
+// @Failure 500 {string} string "internal error"
 // @Router       /api/shorten [post]
 func (s *Shortener) AddJSON(c *gin.Context) {
 	var request models.RequestURL
@@ -118,13 +118,13 @@ func (s *Shortener) AddJSON(c *gin.Context) {
 }
 
 // Get godoc
-// @Summary      Перенаправляет по сокращенной ссылке на оригинальную
-// @Description  Перенаправляет по сокращенной ссылке на оригинальную
-// @Param шв id path string true "Link ID"
-// @Success 307	{string} string "Перенапралено на оригинальную ссылку"
-// @Failure 400 {string} string "Ссылка не найдена"
-// @Failure 410 {string} string "Ссылка удалена"
-// @Failure 500 {string} string "Внутренняя ошибка"
+// @Summary      Redirects via a shortened link to the original
+// @Description  Redirects via a shortened link to the original
+// @Param id path string true "Link ID"
+// @Success 307	{string} string "successfully redirected"
+// @Failure 400 {string} string "Link not found"
+// @Failure 410 {string} string "Link removed"
+// @Failure 500 {string} string "internal error"
 // @Router /{id} [get]
 func (s *Shortener) Get(c *gin.Context) {
 	urlID := c.Param("id")
@@ -146,15 +146,15 @@ func (s *Shortener) Get(c *gin.Context) {
 }
 
 // BatchURLs godoc
-// @Summary      Добавляет пакет ссылкок
-// @Description  Сокращает полученные ссылки и добавляет в БД
+// @Summary      adds a links batch
+// @Description  Shortens the link batch and adds it to the database
 // @Accept       json
 // @Produce      json
-// @Param RequestURL body []models.RequestBatch true "Ссылки для сокращения"
-// @Success 201 {object} []models.ResponseBatch
-// @Failure 400 {string} string "Неверный запрос"
-// @Failure 409 {string} string "Добавляемая ссылка уже существует"
-// @Failure 500 {string} string "Внутренняя ошибка"
+// @Param RequestURL body []models.RequestBatch true "original links"
+// @Success 201 {object} []models.ResponseBatch "short links"
+// @Failure 400 {string} string "invalid request"
+// @Failure 409 {string} string "added link is already exist"
+// @Failure 500 {string} string "internal error"
 // @Router       /api/shorten/batch [post]
 func (s *Shortener) BatchURLs(c *gin.Context) {
 	reqBatch := make([]models.RequestBatch, 0)
@@ -176,13 +176,13 @@ func (s *Shortener) BatchURLs(c *gin.Context) {
 }
 
 // GetUserURLs godoc
-// @Summary      Возвращает список ссылок добавленных пользователем
-// @Description  Возвращает список ссылок добавленных пользователем
+// @Summary      Returns a list of links added by the user
+// @Description  Returns a list of links added by the user
 // @Accept       json
 // @Produce      json
 // @Success 200 {object} []models.UserURLs
-// @Success 204 {string} string "У пользователя нет ссылок"
-// @Failure 500 {string} string "Внутренняя ошибка"
+// @Success 204 {string} string "user has no links"
+// @Failure 500 {string} string "internal error"
 // @Router       /api/user/urls [get]
 func (s *Shortener) GetUserURLs(c *gin.Context) {
 	userID := c.GetUint64("userid")
@@ -199,10 +199,10 @@ func (s *Shortener) GetUserURLs(c *gin.Context) {
 }
 
 // PingDB godoc
-// @Summary      Проверка соединения с БД
-// @Description  Проверка соединения с БД
-// @Success 200 {string} string "Успешное соединение"
-// @Failure 500 {string} string "Внутренняя ошибка"
+// @Summary      Checking the database connection
+// @Description  Checking the database connection
+// @Success 200 {string} string "successful connection"
+// @Failure 500 {string} string "internal error"
 // @Router       /ping [get]
 func (s *Shortener) PingDB(c *gin.Context) {
 	if err := s.Storage.Ping(); err != nil {
@@ -213,13 +213,13 @@ func (s *Shortener) PingDB(c *gin.Context) {
 }
 
 // DeleteUserURLs godoc
-// @Summary      Удаляет ссылки пользователя по ID
-// @Description  Возвращает список ссылок добавленных пользователем
+// @Summary      Removes user links by shortened ID
+// @Description  Removes user links by shortened ID
 // @Accept       json
 // @Produce      json
-// @Param urlsID body []string true "ID ссылок для удаления"
-// @Success 202 {string} string "Запрос приянт в обработку"
-// @Success 400 {string} string "Неверный запрос"
+// @Param urlsID body []string true "Link IDs to remove"
+// @Success 202 {string} string "request accepted for processing"
+// @Success 400 {string} string "invalid request"
 // @Router       /api/user/urls [post]
 func (s *Shortener) DeleteUserURLs(c *gin.Context) {
 	urlsID := make([]string, 0)

@@ -1,2 +1,2 @@
-// Модуль handlers предназначен для маршрутизации и обработки http запросов
+// Package handlers implements routing and processing of HTTP requests
 package handlers

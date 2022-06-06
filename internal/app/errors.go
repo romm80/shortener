@@ -13,7 +13,7 @@ var (
 	ErrLinkNoFound   = errors.New("link not found by id")
 )
 
-// ErrStatusCode возвращает код ответа http в зависимости от типа ошибки
+// ErrStatusCode returns http response code depending on error type
 func ErrStatusCode(err error) int {
 	log.Println(err)
 

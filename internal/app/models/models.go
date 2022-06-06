@@ -1,34 +1,34 @@
 package models
 
-// RequestURL содержит ссылку для сокращения
+// RequestURL original link for shortening
 type RequestURL struct {
 	URL string `json:"url"`
 }
 
-// ResponseURL содержит сокращенную ссылку
+// ResponseURL shortened link
 type ResponseURL struct {
 	Result string `json:"result"`
 }
 
-// RequestBatch содержит запррос для пакетного сокращения ссылок
+// RequestBatch batch request for link shortening
 type RequestBatch struct {
 	CorrelationID string `json:"correlation_id"`
 	OriginalURL   string `json:"original_url"`
 }
 
-// ResponseBatch содержит результат пакетного сокращения ссылок
+// ResponseBatch result of batch shortening links
 type ResponseBatch struct {
 	CorrelationID string `json:"correlation_id"`
 	ShortURL      string `json:"short_url"`
 }
 
-// URLsID содержит данные для записи в файл
+// URLsID data to write to file
 type URLsID struct {
 	ID          string `json:"id"`
 	OriginalURL string `json:"original_url"`
 }
 
-// UserURLs содержит результат запроса сокращенных ссылок по id пользователя
+// UserURLs shortened link query result by user id
 type UserURLs struct {
 	ShortURL    string `json:"short_url"`
 	OriginalURL string `json:"original_url"`
