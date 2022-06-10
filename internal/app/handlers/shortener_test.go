@@ -1,11 +1,9 @@
 package handlers
 
 import (
+	"encoding/json"
 	"fmt"
 	"github.com/caarlos0/env/v6"
-	"github.com/romm80/shortener.git/internal/app/models"
-	"github.com/romm80/shortener.git/internal/app/server"
-	"github.com/romm80/shortener.git/internal/app/service"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	"io/ioutil"
@@ -14,6 +12,10 @@ import (
 	"net/http/httptest"
 	"strings"
 	"testing"
+
+	"github.com/romm80/shortener.git/internal/app/models"
+	"github.com/romm80/shortener.git/internal/app/server"
+	"github.com/romm80/shortener.git/internal/app/service"
 )
 
 var urls = []models.URLsID{
@@ -230,6 +232,203 @@ func TestShortener_AddJSON(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			body := strings.NewReader(tt.body)
 			request := httptest.NewRequest(http.MethodPost, tt.path, body)
+			w := httptest.NewRecorder()
+
+			handler.Router.ServeHTTP(w, request)
+			result := w.Result()
+
+			assert.Equal(t, tt.want.status, result.StatusCode)
+			assert.Equal(t, tt.want.contentType, result.Header.Get("Content-Type"))
+
+			link, err := ioutil.ReadAll(result.Body)
+			require.NoError(t, err)
+			err = result.Body.Close()
+			require.NoError(t, err)
+			assert.Equal(t, tt.want.body, string(link))
+		})
+	}
+}
+
+func TestShortener_BatchURLs(t *testing.T) {
+	server.Cfg.DBType = server.DBMap
+	server.Cfg.BaseURL = "http://127.0.0.1:8080"
+	batchPath := "/api/shorten/batch"
+	RequestURLs := []models.RequestBatch{
+		{
+			CorrelationID: "-",
+			OriginalURL:   "https://www.google.com/",
+		},
+		{
+			CorrelationID: "-",
+			OriginalURL:   "https://www.yandex.ru/",
+		},
+	}
+	ResponseURLs := []models.ResponseBatch{
+		{
+			CorrelationID: "-",
+			ShortURL:      service.BaseURL(service.ShortenURLID(RequestURLs[0].OriginalURL)),
+		},
+		{
+			CorrelationID: "-",
+			ShortURL:      service.BaseURL(service.ShortenURLID(RequestURLs[1].OriginalURL)),
+		},
+	}
+	reqJSON, err := json.Marshal(RequestURLs)
+	if err != nil {
+		log.Fatal(err)
+	}
+	respJSON, err := json.Marshal(ResponseURLs)
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	handler, err := New()
+	if err != nil {
+		log.Fatal(err)
+	}
+	if err := env.Parse(&server.Cfg); err != nil {
+		log.Fatal(err)
+	}
+
+	type want struct {
+		status      int
+		contentType string
+		body        string
+	}
+	tests := []struct {
+		name string
+		path string
+		body string
+		want want
+	}{
+		{
+			name: "Successfully added links",
+			path: batchPath,
+			body: string(reqJSON),
+			want: want{
+				status:      201,
+				contentType: "application/json; charset=utf-8",
+				body:        string(respJSON),
+			},
+		},
+		{
+			name: "invalid json",
+			path: batchPath,
+			body: `{"url2":"https://yandex.ru/"}`,
+			want: want{
+				status: 400,
+				body:   "[]",
+			},
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			body := strings.NewReader(tt.body)
+			request := httptest.NewRequest(http.MethodPost, tt.path, body)
+			w := httptest.NewRecorder()
+
+			handler.Router.ServeHTTP(w, request)
+			result := w.Result()
+
+			assert.Equal(t, tt.want.status, result.StatusCode)
+			assert.Equal(t, tt.want.contentType, result.Header.Get("Content-Type"))
+
+			link, err := ioutil.ReadAll(result.Body)
+			require.NoError(t, err)
+			err = result.Body.Close()
+			require.NoError(t, err)
+			assert.Equal(t, tt.want.body, string(link))
+		})
+	}
+}
+
+func TestShortener_GetUserURLs(t *testing.T) {
+	server.Cfg.DBType = server.DBMap
+
+	handler, err := New()
+	if err != nil {
+		log.Fatal(err)
+	}
+	if err := env.Parse(&server.Cfg); err != nil {
+		log.Fatal(err)
+	}
+	userURLsPath := "/api/user/urls"
+	URLs := []models.RequestBatch{
+		{
+			CorrelationID: "-",
+			OriginalURL:   "https://www.google.com/",
+		},
+		{
+			CorrelationID: "-",
+			OriginalURL:   "https://www.yandex.ru/",
+		},
+	}
+	userID, err := handler.Storage.NewUser()
+	if err != nil {
+		log.Fatal(err)
+	}
+	shortURLs, err := handler.Storage.AddBatch(URLs, userID)
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	resp, err := json.Marshal([]models.UserURLs{
+		{
+			OriginalURL: URLs[0].OriginalURL,
+			ShortURL:    shortURLs[0].ShortURL,
+		},
+		{
+			OriginalURL: URLs[1].OriginalURL,
+			ShortURL:    shortURLs[1].ShortURL,
+		},
+	})
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	type want struct {
+		status      int
+		contentType string
+		body        string
+	}
+	tests := []struct {
+		name   string
+		path   string
+		body   string
+		userID uint64
+		want   want
+	}{
+		{
+			name:   "Successfully found links",
+			path:   userURLsPath,
+			userID: userID,
+			want: want{
+				status:      200,
+				contentType: "application/json; charset=utf-8",
+				body:        string(resp),
+			},
+		},
+		{
+			name:   "Successfully no content 1",
+			path:   userURLsPath,
+			userID: 999,
+			want: want{
+				status: 204,
+			},
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			body := strings.NewReader(tt.body)
+			request := httptest.NewRequest(http.MethodGet, tt.path, body)
+			signedID, _ := service.SignUserID(tt.userID)
+			cookie := &http.Cookie{
+				Name:  "userid",
+				Value: signedID,
+			}
+			request.AddCookie(cookie)
 			w := httptest.NewRecorder()
 
 			handler.Router.ServeHTTP(w, request)

@@ -1,0 +1,216 @@
+definitions:
+  models.RequestBatch:
+    properties:
+      correlation_id:
+        type: string
+      original_url:
+        type: string
+    type: object
+  models.RequestURL:
+    properties:
+      url:
+        type: string
+    type: object
+  models.ResponseBatch:
+    properties:
+      correlation_id:
+        type: string
+      short_url:
+        type: string
+    type: object
+  models.ResponseURL:
+    properties:
+      result:
+        type: string
+    type: object
+  models.UserURLs:
+    properties:
+      original_url:
+        type: string
+      short_url:
+        type: string
+    type: object
+host: localhost:8080
+info:
+  contact: {}
+  description: Link shortening service.
+  title: Shortener API
+  version: "1.0"
+paths:
+  /:
+    post:
+      consumes:
+      - text/plain
+      description: Shortens the received link and adds it to the database
+      parameters:
+      - description: original link
+        in: body
+        name: RequestURL
+        required: true
+        schema:
+          type: string
+      produces:
+      - text/plain
+      responses:
+        "201":
+          description: short link
+          schema:
+            type: string
+        "500":
+          description: internal error
+          schema:
+            type: string
+      summary: Adds a link
+  /{id}:
+    get:
+      description: Redirects via a shortened link to the original
+      parameters:
+      - description: Link ID
+        in: path
+        name: id
+        required: true
+        type: string
+      responses:
+        "307":
+          description: successfully redirected
+          schema:
+            type: string
+        "400":
+          description: Link not found
+          schema:
+            type: string
+        "410":
+          description: Link removed
+          schema:
+            type: string
+        "500":
+          description: internal error
+          schema:
+            type: string
+      summary: Redirects via a shortened link to the original
+  /api/shorten:
+    post:
+      consumes:
+      - application/json
+      description: Shortens the received link and adds it to the database
+      parameters:
+      - description: original link
+        in: body
+        name: RequestURL
+        required: true
+        schema:
+          $ref: '#/definitions/models.RequestURL'
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: short link
+          schema:
+            $ref: '#/definitions/models.ResponseURL'
+        "400":
+          description: invalid request
+          schema:
+            type: string
+        "500":
+          description: internal error
+          schema:
+            type: string
+      summary: Adds a link
+  /api/shorten/batch:
+    post:
+      consumes:
+      - application/json
+      description: Shortens the link batch and adds it to the database
+      parameters:
+      - description: original links
+        in: body
+        name: RequestURL
+        required: true
+        schema:
+          items:
+            $ref: '#/definitions/models.RequestBatch'
+          type: array
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: short links
+          schema:
+            items:
+              $ref: '#/definitions/models.ResponseBatch'
+            type: array
+        "400":
+          description: invalid request
+          schema:
+            type: string
+        "409":
+          description: added link is already exist
+          schema:
+            type: string
+        "500":
+          description: internal error
+          schema:
+            type: string
+      summary: adds a links batch
+  /api/user/urls:
+    get:
+      consumes:
+      - application/json
+      description: Returns a list of links added by the user
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            items:
+              $ref: '#/definitions/models.UserURLs'
+            type: array
+        "204":
+          description: user has no links
+          schema:
+            type: string
+        "500":
+          description: internal error
+          schema:
+            type: string
+      summary: Returns a list of links added by the user
+    post:
+      consumes:
+      - application/json
+      description: Removes user links by shortened ID
+      parameters:
+      - description: Link IDs to remove
+        in: body
+        name: urlsID
+        required: true
+        schema:
+          items:
+            type: string
+          type: array
+      produces:
+      - application/json
+      responses:
+        "202":
+          description: request accepted for processing
+          schema:
+            type: string
+        "400":
+          description: invalid request
+          schema:
+            type: string
+      summary: Removes user links by shortened ID
+  /ping:
+    get:
+      description: Checking the database connection
+      responses:
+        "200":
+          description: successful connection
+          schema:
+            type: string
+        "500":
+          description: internal error
+          schema:
+            type: string
+      summary: Checking the database connection
+swagger: "2.0"

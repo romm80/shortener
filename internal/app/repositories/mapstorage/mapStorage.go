@@ -4,11 +4,13 @@ import (
 	"bufio"
 	"encoding/json"
 	"errors"
+	"os"
+	"sync"
+
+	"github.com/romm80/shortener.git/internal/app"
 	"github.com/romm80/shortener.git/internal/app/models"
 	"github.com/romm80/shortener.git/internal/app/server"
 	"github.com/romm80/shortener.git/internal/app/service"
-	"os"
-	"sync"
 )
 
 type MapStorage struct {
@@ -49,10 +51,17 @@ func New() (*MapStorage, error) {
 func (s *MapStorage) Add(url string, userID uint64) (string, error) {
 	urlID := service.ShortenURLID(url)
 
+	if _, inMap := s.links[urlID]; inMap {
+		return "", app.ErrConflictURLID
+	}
+
 	s.mu.Lock()
 	defer s.mu.Unlock()
 
 	s.links[urlID] = url
+	if s.usersLinks[userID] == nil {
+		s.usersLinks[userID] = make(map[string]string, 1)
+	}
 	s.usersLinks[userID][urlID] = url
 
 	if server.Cfg.FileStorage != "" {
@@ -80,11 +89,18 @@ func (s *MapStorage) Add(url string, userID uint64) (string, error) {
 
 func (s *MapStorage) AddBatch(urls []models.RequestBatch, userID uint64) ([]models.ResponseBatch, error) {
 	respBatch := make([]models.ResponseBatch, 0)
+	if s.usersLinks[userID] == nil {
+		s.usersLinks[userID] = make(map[string]string, len(urls))
+	}
 	for _, v := range urls {
 		urlID, err := s.Add(v.OriginalURL, userID)
-		if err != nil {
+		if err != nil && !errors.Is(err, app.ErrConflictURLID) {
 			return nil, err
 		}
+		if errors.Is(err, app.ErrConflictURLID) {
+			continue
+		}
+
 		respBatch = append(respBatch, models.ResponseBatch{
 			CorrelationID: v.CorrelationID,
 			ShortURL:      service.BaseURL(urlID),
@@ -98,7 +114,7 @@ func (s *MapStorage) Get(id string) (string, error) {
 	if val, ok := s.links[id]; ok {
 		return val, nil
 	}
-	return "", errors.New("link not found by id")
+	return "", app.ErrLinkNoFound
 }
 
 func (s *MapStorage) GetUserURLs(userID uint64) ([]models.UserURLs, error) {
