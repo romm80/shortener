@@ -2,12 +2,10 @@ package main
 
 import (
 	"flag"
-	"log"
-
 	"github.com/caarlos0/env/v6"
-
 	"github.com/romm80/shortener.git/internal/app/handlers"
 	"github.com/romm80/shortener.git/internal/app/server"
+	"log"
 
 	_ "github.com/golang-migrate/migrate/v4/database/postgres"
 	_ "github.com/golang-migrate/migrate/v4/source/file"

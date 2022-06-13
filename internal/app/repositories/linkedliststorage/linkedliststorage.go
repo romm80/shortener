@@ -1,3 +1,4 @@
+// Package linkedliststorage implements work with the linked list storage
 package linkedliststorage
 
 import (
@@ -9,18 +10,18 @@ import (
 )
 
 type node struct {
+	next      *node
+	prev      *node
 	urlID     string
 	originURL string
 	userID    uint64
-	next      *node
-	prev      *node
 }
 
 type URLsList struct {
 	head         *node
 	tail         *node
-	userIDsCount uint64
 	mu           *sync.RWMutex
+	userIDsCount uint64
 }
 
 func New() *URLsList {

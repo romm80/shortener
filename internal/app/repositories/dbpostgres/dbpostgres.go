@@ -1,3 +1,4 @@
+// Package dbpostgres implements work with the postgres
 package dbpostgres
 
 import (

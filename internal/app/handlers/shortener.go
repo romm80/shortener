@@ -49,7 +49,6 @@ func New() (*Shortener, error) {
 	r.Router.DELETE("/api/user/urls", r.DeleteUserURLs)
 
 	pprof.Register(r.Router)
-
 	return r, nil
 }
 

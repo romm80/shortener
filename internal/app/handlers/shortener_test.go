@@ -42,8 +42,8 @@ func TestShortener_Add(t *testing.T) {
 	}
 
 	type want struct {
-		status int
 		body   string
+		status int
 	}
 	tests := []struct {
 		name string
@@ -103,7 +103,7 @@ func TestShortener_Get(t *testing.T) {
 	}
 
 	userID, _ := handler.Storage.NewUser()
-	urls := []models.URLsID{
+	urls = []models.URLsID{
 		{
 			OriginalURL: "https://www.google.com/",
 		},
@@ -116,8 +116,8 @@ func TestShortener_Get(t *testing.T) {
 	urls[1].ID, _ = handler.Storage.Add(urls[1].OriginalURL, userID)
 
 	type want struct {
-		status   int
 		location string
+		status   int
 	}
 	tests := []struct {
 		name string
@@ -180,9 +180,9 @@ func TestShortener_AddJSON(t *testing.T) {
 	}
 
 	type want struct {
-		status      int
 		contentType string
 		body        string
+		status      int
 	}
 	tests := []struct {
 		name string
@@ -291,9 +291,9 @@ func TestShortener_BatchURLs(t *testing.T) {
 	}
 
 	type want struct {
-		status      int
 		contentType string
 		body        string
+		status      int
 	}
 	tests := []struct {
 		name string
@@ -350,7 +350,7 @@ func TestShortener_GetUserURLs(t *testing.T) {
 	if err != nil {
 		log.Fatal(err)
 	}
-	if err := env.Parse(&server.Cfg); err != nil {
+	if err = env.Parse(&server.Cfg); err != nil {
 		log.Fatal(err)
 	}
 	userURLsPath := "/api/user/urls"
@@ -388,16 +388,16 @@ func TestShortener_GetUserURLs(t *testing.T) {
 	}
 
 	type want struct {
-		status      int
 		contentType string
 		body        string
+		status      int
 	}
 	tests := []struct {
 		name   string
 		path   string
 		body   string
-		userID uint64
 		want   want
+		userID uint64
 	}{
 		{
 			name:   "Successfully found links",

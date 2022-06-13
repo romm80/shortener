@@ -9,8 +9,8 @@ import (
 
 // Task - task to remove links
 type Task struct {
-	UserID uint64   // user id
 	UrlsID []string // list of shortened links IDs to remove
+	UserID uint64   // user id
 }
 
 // DeleteWorker link remover worker
