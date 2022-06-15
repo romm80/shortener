@@ -1,3 +1,4 @@
+// Package mapstorage implements work with the map storage
 package mapstorage
 
 import (

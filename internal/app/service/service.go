@@ -1,3 +1,4 @@
+//Package service implements logic of shortener
 package service
 
 import (

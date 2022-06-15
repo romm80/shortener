@@ -1,3 +1,4 @@
+//Package app implements custom errors mapping
 package app
 
 import (

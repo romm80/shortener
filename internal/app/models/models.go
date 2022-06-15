@@ -1,3 +1,4 @@
+// Package models describes data models
 package models
 
 // RequestURL original link for shortening
