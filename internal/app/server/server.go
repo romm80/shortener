@@ -23,6 +23,11 @@ type Server struct {
 }
 
 func New() (*Server, error) {
+
+	if err := initConfig(); err != nil {
+		return nil, err
+	}
+
 	srv := new(Server)
 	if !Cfg.EnableHTTPS {
 		return srv, nil
