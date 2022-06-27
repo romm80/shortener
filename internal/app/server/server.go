@@ -2,6 +2,7 @@ package server
 
 import (
 	"bytes"
+	"context"
 	"crypto/rand"
 	"crypto/rsa"
 	"crypto/x509"
@@ -91,7 +92,18 @@ func (s *Server) Run(handler http.Handler) error {
 	if Cfg.EnableHTTPS {
 		return s.httpServer.ListenAndServeTLS(s.certFile, s.privateKeyFile)
 	}
+
 	return s.httpServer.ListenAndServe()
+}
+
+func (s *Server) Stop() {
+	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	defer cancel()
+
+	if err := s.httpServer.Shutdown(ctx); err != nil {
+		log.Fatalf("Server shutdown failed:%+v", err)
+	}
+	log.Println("Server shutdowned")
 }
 
 func writeToFile(data bytes.Buffer, fileName string) error {
