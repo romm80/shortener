@@ -26,6 +26,7 @@ func main() {
 	flag.StringVar(&server.Cfg.BaseURL, "b", server.Cfg.BaseURL, "Base URL address")
 	flag.StringVar(&server.Cfg.FileStorage, "f", server.Cfg.FileStorage, "File storage path")
 	flag.StringVar(&server.Cfg.DatabaseDNS, "d", server.Cfg.DatabaseDNS, "Database DNS")
+	flag.BoolVar(&server.Cfg.EnableHTTPS, "s", server.Cfg.EnableHTTPS, "Enable HTTPs")
 	flag.Parse()
 
 	server.Cfg.Domain = "localhost"
@@ -41,7 +42,10 @@ func main() {
 		log.Fatal(err)
 	}
 
-	srv := new(server.Server)
+	srv, err := server.New()
+	if err != nil {
+		log.Fatal(err)
+	}
 
 	fmt.Printf("Build version: %s\n", buildVersion)
 	fmt.Printf("Build date:: %s\n", buildDate)

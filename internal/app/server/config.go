@@ -16,6 +16,8 @@ type Config struct {
 	Domain string
 	// SecretKey - signing key
 	SecretKey []byte
+	// EnableHTTPS - turn on/of https
+	EnableHTTPS bool //`env:"ENABLE_HTTPS" envDefault:"false"`
 }
 
 // DBType - database type used to store shortened links
