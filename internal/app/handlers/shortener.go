@@ -47,6 +47,8 @@ func New() (*Shortener, error) {
 	r.Router.POST("/api/shorten/batch", r.BatchURLs)
 	r.Router.GET("/api/user/urls", r.GetUserURLs)
 	r.Router.DELETE("/api/user/urls", r.DeleteUserURLs)
+	r.Router.Use(r.TrustedIP)
+	r.Router.GET("/api/internal/stats", r.DeleteUserURLs)
 
 	pprof.Register(r.Router)
 	return r, nil
@@ -235,4 +237,14 @@ func (s *Shortener) DeleteUserURLs(c *gin.Context) {
 	s.DeleteWorker.Add(userID, urlsID)
 
 	c.Status(http.StatusAccepted)
+}
+
+func (s *Shortener) Stats(c *gin.Context) {
+	res, err := s.Storage.GetStats()
+	if err != nil {
+		c.AbortWithStatus(http.StatusInternalServerError)
+		return
+	}
+
+	c.JSON(http.StatusOK, res)
 }

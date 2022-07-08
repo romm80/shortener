@@ -2,6 +2,7 @@ package handlers
 
 import (
 	"compress/gzip"
+	"net"
 	"net/http"
 	"strings"
 
@@ -61,4 +62,12 @@ func (s *Shortener) AuthMiddleware(c *gin.Context) {
 
 	c.Set("userid", userID)
 	c.Next()
+}
+
+func (s *Shortener) TrustedIP(c *gin.Context) {
+	if server.Cfg.TrustedIPNet != nil && server.Cfg.TrustedIPNet.Contains(net.ParseIP(c.GetHeader("X-Real-IP"))) {
+		c.Next()
+		return
+	}
+	c.AbortWithStatus(http.StatusForbidden)
 }

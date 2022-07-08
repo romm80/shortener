@@ -211,3 +211,23 @@ func (db *DB) DeleteBatch(userID uint64, urlsID []string) error {
 
 	return nil
 }
+
+func (db *DB) GetStats() (*models.StatsResponse, error) {
+	conn, err := db.pool.Acquire(context.Background())
+	if err != nil {
+		return nil, err
+	}
+	defer conn.Release()
+
+	res := models.StatsResponse{}
+	q := `SELECT SUM(urls) AS urls, SUM(users) AS users FROM 
+			(SELECT COUNT(*) AS urls, 0 AS users FROM urls_id WHERE NOT deleted
+			UNION ALL
+			SELECT 0, COUNT(*) FROM users) AS res`
+	err = conn.QueryRow(context.Background(), q).Scan(&res.URLs, &res.Users)
+	if err != nil {
+		return nil, err
+	}
+
+	return &res, nil
+}

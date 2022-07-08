@@ -20,6 +20,7 @@ type Shortener interface {
 	NewUser() (uint64, error)                                                           // adds a new user
 	Ping() error                                                                        // database connection check
 	DeleteBatch(uint64, []string) error                                                 // batch deleting links by user id
+	GetStats() (*models.StatsResponse, error)
 }
 
 // NewStorage returns an initialized database connection
