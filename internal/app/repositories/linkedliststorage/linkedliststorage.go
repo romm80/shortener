@@ -23,6 +23,7 @@ type URLsList struct {
 	tail         *node
 	mu           *sync.RWMutex
 	userIDsCount uint64
+	linksCount   int
 }
 
 func New() *URLsList {
@@ -43,6 +44,7 @@ func (list *URLsList) findNode(urlID string) (*node, bool) {
 }
 
 func (list *URLsList) appendNode(urlID, originURL string, userID uint64) {
+	list.linksCount++
 	n := &node{
 		urlID:     urlID,
 		originURL: originURL,
@@ -61,6 +63,7 @@ func (list *URLsList) appendNode(urlID, originURL string, userID uint64) {
 }
 
 func (list *URLsList) deleteNode(node *node) {
+	list.linksCount--
 	if node.next == nil && node.prev == nil {
 		list.head = nil
 		list.tail = nil
@@ -159,4 +162,11 @@ func (list *URLsList) DeleteBatch(userID uint64, urlsID []string) error {
 		}
 	}
 	return nil
+}
+
+func (list *URLsList) GetStats() (*models.StatsResponse, error) {
+	return &models.StatsResponse{
+		URLs:  list.linksCount,
+		Users: int(list.userIDsCount),
+	}, nil
 }

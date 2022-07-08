@@ -147,3 +147,10 @@ func (s *MapStorage) DeleteBatch(userID uint64, urlsID []string) error {
 	}
 	return nil
 }
+
+func (s *MapStorage) GetStats() (*models.StatsResponse, error) {
+	return &models.StatsResponse{
+		URLs:  len(s.links),
+		Users: len(s.usersLinks),
+	}, nil
+}
