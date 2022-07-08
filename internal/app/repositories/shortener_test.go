@@ -3,9 +3,10 @@ package repositories
 import (
 	"crypto/rand"
 	"encoding/base32"
+	"testing"
+
 	"github.com/romm80/shortener.git/internal/app/repositories/linkedliststorage"
 	"github.com/romm80/shortener.git/internal/app/repositories/mapstorage"
-	"testing"
 )
 
 const triesN = 10000

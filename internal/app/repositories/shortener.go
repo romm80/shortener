@@ -3,10 +3,10 @@ package repositories
 
 import (
 	"errors"
-	"github.com/romm80/shortener.git/internal/app/repositories/linkedliststorage"
 
 	"github.com/romm80/shortener.git/internal/app/models"
 	"github.com/romm80/shortener.git/internal/app/repositories/dbpostgres"
+	"github.com/romm80/shortener.git/internal/app/repositories/linkedliststorage"
 	"github.com/romm80/shortener.git/internal/app/repositories/mapstorage"
 	"github.com/romm80/shortener.git/internal/app/server"
 )

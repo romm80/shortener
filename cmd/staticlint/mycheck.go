@@ -2,6 +2,8 @@ package main
 
 import (
 	"go/ast"
+	"strings"
+
 	"golang.org/x/tools/go/analysis"
 	"golang.org/x/tools/go/analysis/multichecker"
 	"golang.org/x/tools/go/analysis/passes/asmdecl"
@@ -49,7 +51,6 @@ import (
 	"honnef.co/go/tools/simple"
 	"honnef.co/go/tools/staticcheck"
 	"honnef.co/go/tools/stylecheck"
-	"strings"
 )
 
 var OsExitCheckAnalyser = &analysis.Analyzer{
