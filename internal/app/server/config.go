@@ -3,8 +3,10 @@ package server
 import (
 	"encoding/json"
 	"flag"
-	"github.com/caarlos0/env/v6"
 	"io/ioutil"
+
+	"github.com/caarlos0/env/v6"
+	"github.com/romm80/shortener.git/internal/app/service/certificate"
 )
 
 // Config stores server settings
@@ -27,6 +29,10 @@ type Config struct {
 	EnableHTTPS bool `env:"ENABLE_HTTPS" envDefault:"false" json:"enable_https,omitempty"`
 	// Config - config json file
 	Config string `env:"CONFIG"`
+	// CertFilePath
+	CertFilePath string
+	// PrivateKeyFilePath
+	PrivateKeyFilePath string
 }
 
 // DBType - database type used to store shortened links
@@ -40,7 +46,7 @@ const (
 	DBLinkedList DBType = "DBLinkedList"
 )
 
-func initConfig() error {
+func InitConfig() error {
 	if err := env.Parse(&Cfg); err != nil {
 		return err
 	}
@@ -86,5 +92,14 @@ func initConfig() error {
 	if Cfg.DatabaseDNS != "" {
 		Cfg.DBType = DBPostgres
 	}
+
+	if Cfg.EnableHTTPS {
+		Cfg.CertFilePath = "cert.pem"
+		Cfg.PrivateKeyFilePath = "privateKey.pem"
+		if err := certificate.GenerateCert(Cfg.CertFilePath, Cfg.PrivateKeyFilePath); err != nil {
+			return err
+		}
+	}
+
 	return nil
 }

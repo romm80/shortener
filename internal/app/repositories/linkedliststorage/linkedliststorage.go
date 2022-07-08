@@ -3,10 +3,11 @@ package linkedliststorage
 
 import (
 	"errors"
+	"sync"
+
 	"github.com/romm80/shortener.git/internal/app"
 	"github.com/romm80/shortener.git/internal/app/models"
 	"github.com/romm80/shortener.git/internal/app/service"
-	"sync"
 )
 
 type node struct {

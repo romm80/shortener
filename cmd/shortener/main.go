@@ -2,13 +2,14 @@ package main
 
 import (
 	"fmt"
-	"github.com/romm80/shortener.git/internal/app/handlers"
-	"github.com/romm80/shortener.git/internal/app/server"
 	"log"
 	"net/http"
 	"os"
 	"os/signal"
 	"syscall"
+
+	"github.com/romm80/shortener.git/internal/app/handlers"
+	"github.com/romm80/shortener.git/internal/app/server"
 
 	_ "github.com/golang-migrate/migrate/v4/database/postgres"
 	_ "github.com/golang-migrate/migrate/v4/source/file"
@@ -21,8 +22,11 @@ var (
 )
 
 func main() {
+	fmt.Printf("Build version: %s\n", buildVersion)
+	fmt.Printf("Build date:: %s\n", buildDate)
+	fmt.Printf("Build commit: %s\n", buildCommit)
 
-	srv, err := server.New()
+	srv, err := server.NewServer()
 	if err != nil {
 		log.Fatal(err)
 	}
@@ -31,10 +35,6 @@ func main() {
 	if err != nil {
 		log.Fatal(err)
 	}
-
-	fmt.Printf("Build version: %s\n", buildVersion)
-	fmt.Printf("Build date:: %s\n", buildDate)
-	fmt.Printf("Build commit: %s\n", buildCommit)
 
 	done := make(chan os.Signal, 1)
 	signal.Notify(done, os.Interrupt, syscall.SIGINT, syscall.SIGTERM)
