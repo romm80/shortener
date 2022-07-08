@@ -109,6 +109,9 @@ func InitConfig() (err error) {
 
 	if Cfg.TrustedSubnet != "" {
 		_, Cfg.TrustedIPNet, err = net.ParseCIDR(Cfg.TrustedSubnet)
+		if err != nil {
+			return err
+		}
 	}
 
 	return nil
