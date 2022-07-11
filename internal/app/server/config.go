@@ -6,8 +6,9 @@ import (
 	"io/ioutil"
 	"net"
 
+	"github.com/romm80/shortener.git/internal/app/server/certificate"
+
 	"github.com/caarlos0/env/v6"
-	"github.com/romm80/shortener.git/internal/app/service/certificate"
 )
 
 // Config stores server settings

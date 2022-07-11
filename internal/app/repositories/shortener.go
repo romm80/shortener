@@ -13,13 +13,12 @@ import (
 
 // Shortener repository interface
 type Shortener interface {
-	Add(url string, userID uint64) (string, error)                                      // adds a link by user id
-	AddBatch(urls []models.RequestBatch, userID uint64) ([]models.ResponseBatch, error) // adds a batch of links by user id
-	Get(id string) (string, error)                                                      // returns original link by id
-	GetUserURLs(userID uint64) ([]models.UserURLs, error)                               // returns user shortened links
-	NewUser() (uint64, error)                                                           // adds a new user
-	Ping() error                                                                        // database connection check
-	DeleteBatch(uint64, []string) error                                                 // batch deleting links by user id
+	Add(url, urlID string, userID uint64) error           // adds a link by user id
+	Get(id string) (string, error)                        // returns original link by id
+	GetUserURLs(userID uint64) ([]models.UserURLs, error) // returns user shortened links
+	NewUser() (uint64, error)                             // adds a new user
+	Ping() error                                          // database connection check
+	DeleteBatch(uint64, []string) error                   // batch deleting links by user id
 	GetStats() (*models.StatsResponse, error)
 }
 

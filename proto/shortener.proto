@@ -1,0 +1,10 @@
+syntax = "proto3";
+package shortener;
+
+option go_package = "pkg/shortener";
+
+import "google/protobuf/empty.proto";
+
+service Shortener {
+  rpc PingDB(google.protobuf.Empty) returns(google.protobuf.Empty);
+}

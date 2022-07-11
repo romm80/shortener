@@ -10,7 +10,6 @@ import (
 	"github.com/romm80/shortener.git/internal/app"
 	"github.com/romm80/shortener.git/internal/app/models"
 	"github.com/romm80/shortener.git/internal/app/server"
-	"github.com/romm80/shortener.git/internal/app/service"
 )
 
 type DB struct {
@@ -60,68 +59,35 @@ func migrateDB() error {
 	return nil
 }
 
-func (db *DB) Add(url string, userID uint64) (string, error) {
+func (db *DB) Add(url, urlID string, userID uint64) error {
 	ctx := context.Background()
 	conn, err := db.pool.Acquire(ctx)
 	if err != nil {
-		return "", err
+		return err
 	}
 	defer conn.Release()
 
 	tx, err := conn.Begin(ctx)
 	if err != nil {
-		return "", err
+		return err
 	}
 	defer tx.Rollback(ctx)
 
-	urlID := service.ShortenURLID(url)
 	var status string
 	var errConflict error
 
 	err = tx.QueryRow(ctx, sqlInsertURLID, urlID, url, userID).Scan(&urlID, &status)
 	if err != nil {
-		return "", err
+		return err
 	}
 	if status == "conflict" {
 		errConflict = app.ErrConflictURLID
 	}
 
 	if err := tx.Commit(ctx); err != nil {
-		return "", err
+		return err
 	}
-	return urlID, errConflict
-}
-
-func (db *DB) AddBatch(urls []models.RequestBatch, userID uint64) ([]models.ResponseBatch, error) {
-	ctx := context.Background()
-	conn, err := db.pool.Acquire(ctx)
-	if err != nil {
-		return nil, err
-	}
-	defer conn.Release()
-
-	tx, err := conn.Begin(ctx)
-	if err != nil {
-		return nil, err
-	}
-	defer tx.Rollback(ctx)
-
-	respBatch := make([]models.ResponseBatch, 0)
-	for _, v := range urls {
-		urlID := service.ShortenURLID(v.OriginalURL)
-		if err = tx.QueryRow(ctx, sqlInsertURLID, urlID, v.OriginalURL, userID).Scan(&urlID, new(string)); err != nil {
-			return nil, err
-		}
-		respBatch = append(respBatch, models.ResponseBatch{
-			CorrelationID: v.CorrelationID,
-			ShortURL:      service.BaseURL(urlID),
-		})
-	}
-	if err := tx.Commit(ctx); err != nil {
-		return nil, err
-	}
-
-	return respBatch, nil
+	return errConflict
 }
 
 func (db *DB) Get(id string) (originURL string, err error) {
@@ -161,7 +127,6 @@ func (db *DB) GetUserURLs(userID uint64) ([]models.UserURLs, error) {
 		if err != nil {
 			return nil, err
 		}
-		url.ShortURL = service.BaseURL(urlID)
 		urls = append(urls, *url)
 	}
 	return urls, nil

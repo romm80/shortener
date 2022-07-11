@@ -49,11 +49,10 @@ func New() (*MapStorage, error) {
 	}, nil
 }
 
-func (s *MapStorage) Add(url string, userID uint64) (string, error) {
-	urlID := service.ShortenURLID(url)
+func (s *MapStorage) Add(url, urlID string, userID uint64) error {
 
 	if _, inMap := s.links[urlID]; inMap {
-		return "", app.ErrConflictURLID
+		return app.ErrConflictURLID
 	}
 
 	s.mu.Lock()
@@ -68,7 +67,7 @@ func (s *MapStorage) Add(url string, userID uint64) (string, error) {
 	if server.Cfg.FileStorage != "" {
 		file, err := os.OpenFile(server.Cfg.FileStorage, os.O_WRONLY|os.O_APPEND, 0777)
 		if err != nil {
-			return "", err
+			return err
 		}
 		defer file.Close()
 
@@ -78,14 +77,14 @@ func (s *MapStorage) Add(url string, userID uint64) (string, error) {
 		}
 		b, err := json.Marshal(res)
 		if err != nil {
-			return "", err
+			return err
 		}
 		if _, err := file.Write(append(b, '\n')); err != nil {
-			return "", err
+			return err
 		}
 	}
 
-	return urlID, nil
+	return nil
 }
 
 func (s *MapStorage) AddBatch(urls []models.RequestBatch, userID uint64) ([]models.ResponseBatch, error) {
