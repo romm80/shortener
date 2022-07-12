@@ -3,7 +3,6 @@ package api
 import (
 	"context"
 	"errors"
-	"log"
 
 	"github.com/romm80/shortener.git/internal/app"
 	"github.com/romm80/shortener.git/internal/app/models"
@@ -29,10 +28,10 @@ func (s *Shortener) PingDB(ctx context.Context, in *emptypb.Empty) (*emptypb.Emp
 }
 
 func (s *Shortener) Add(ctx context.Context, req *pb.OriginURL) (resp *pb.ShortURL, err error) {
-	userId := ctx.Value("userid").(uint64)
+	userID := ctx.Value("userid").(uint64)
 	resp = &pb.ShortURL{}
 
-	resp.Result, err = s.Service.Add(req.Url, userId)
+	resp.Result, err = s.Service.Add(req.Url, userID)
 	if err != nil && !errors.Is(err, app.ErrConflictURLID) {
 		return resp, status.Error(codes.Internal, err.Error())
 	}
@@ -60,7 +59,7 @@ func (s *Shortener) Get(ctx context.Context, req *pb.RequestID) (resp *pb.Origin
 }
 
 func (s Shortener) BatchURLs(ctx context.Context, req *pb.RequestBatchURL) (*pb.ResponseBatchURL, error) {
-	userId := ctx.Value("userid").(uint64)
+	userID := ctx.Value("userid").(uint64)
 	resp := &pb.ResponseBatchURL{}
 
 	var reqBatch []models.RequestBatch
@@ -71,7 +70,7 @@ func (s Shortener) BatchURLs(ctx context.Context, req *pb.RequestBatchURL) (*pb.
 		})
 	}
 
-	respBatch, err := s.Service.AddBatch(reqBatch, userId)
+	respBatch, err := s.Service.AddBatch(reqBatch, userID)
 	if err != nil && !errors.Is(err, app.ErrConflictURLID) {
 		return resp, status.Error(codes.Internal, err.Error())
 	}
@@ -90,11 +89,10 @@ func (s Shortener) BatchURLs(ctx context.Context, req *pb.RequestBatchURL) (*pb.
 }
 
 func (s *Shortener) GetUserURLs(ctx context.Context, in *emptypb.Empty) (*pb.UserURLs, error) {
-	userId := ctx.Value("userid").(uint64)
+	userID := ctx.Value("userid").(uint64)
 	resp := &pb.UserURLs{}
 
-	log.Println(userId)
-	res, err := s.Service.GetUserURLs(userId)
+	res, err := s.Service.GetUserURLs(userID)
 	if err != nil {
 		return resp, status.Error(codes.Internal, err.Error())
 	}
@@ -113,12 +111,12 @@ func (s *Shortener) GetUserURLs(ctx context.Context, in *emptypb.Empty) (*pb.Use
 }
 
 func (s *Shortener) DeleteUserURLs(ctx context.Context, req *pb.DeleteIDs) (*emptypb.Empty, error) {
-	userId := ctx.Value("userid").(uint64)
+	userID := ctx.Value("userid").(uint64)
 
 	if len(req.ID) == 0 {
 		return &emptypb.Empty{}, status.Error(codes.InvalidArgument, "empty link ids")
 	}
-	s.Service.DeleteWorker.Add(userId, req.ID)
+	s.Service.DeleteWorker.Add(userID, req.ID)
 	return &emptypb.Empty{}, nil
 }
 
