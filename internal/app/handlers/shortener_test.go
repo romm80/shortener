@@ -19,20 +19,20 @@ import (
 	"github.com/romm80/shortener.git/internal/app/service"
 )
 
-var urls = []models.URLsID{
-	{
-		ID:          service.ShortenURLID("https://www.google.com/"),
-		OriginalURL: "https://www.google.com/",
-	},
-	{
-		ID:          service.ShortenURLID("https://yandex.ru/"),
-		OriginalURL: "https://yandex.ru/",
-	},
-}
-
 func TestShortener_Add(t *testing.T) {
 	app.Cfg.DBType = app.DBMap
 	app.Cfg.FileStorage = ""
+
+	var urls = []models.URLsID{
+		{
+			ID:          service.ShortenURLID("https://www.google.com/"),
+			OriginalURL: "https://www.google.com/",
+		},
+		{
+			ID:          service.ShortenURLID("https://yandex.ru/"),
+			OriginalURL: "https://yandex.ru/",
+		},
+	}
 
 	services, err := service.NewServices()
 	if err != nil {
@@ -114,6 +114,17 @@ func TestShortener_Get(t *testing.T) {
 		log.Fatal(err)
 	}
 
+	var urls = []models.URLsID{
+		{
+			ID:          service.ShortenURLID("https://www.google.com/"),
+			OriginalURL: "https://www.google.com/",
+		},
+		{
+			ID:          service.ShortenURLID("https://yandex.ru/"),
+			OriginalURL: "https://yandex.ru/",
+		},
+	}
+
 	userID, _ := handler.Services.NewUser()
 	urls = []models.URLsID{
 		{
@@ -182,6 +193,16 @@ func TestShortener_Get(t *testing.T) {
 
 func TestShortener_AddJSON(t *testing.T) {
 	app.Cfg.DBType = app.DBMap
+	var urls = []models.URLsID{
+		{
+			ID:          service.ShortenURLID("https://www.google.com/"),
+			OriginalURL: "https://www.google.com/",
+		},
+		{
+			ID:          service.ShortenURLID("https://yandex.ru/"),
+			OriginalURL: "https://yandex.ru/",
+		},
+	}
 
 	services, err := service.NewServices()
 	if err != nil {
