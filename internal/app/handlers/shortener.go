@@ -8,10 +8,10 @@ import (
 
 	"github.com/gin-contrib/pprof"
 	"github.com/gin-gonic/gin"
-	"github.com/romm80/shortener.git/internal/app/service"
 
 	"github.com/romm80/shortener.git/internal/app"
 	"github.com/romm80/shortener.git/internal/app/models"
+	"github.com/romm80/shortener.git/internal/app/service"
 )
 
 // @title           Shortener API
@@ -119,7 +119,7 @@ func (s *Shortener) AddJSON(c *gin.Context) {
 // @Router /{id} [get]
 func (s *Shortener) Get(c *gin.Context) {
 	urlID := c.Param("id")
-	originURL, err := s.Services.Storage.Get(urlID)
+	originURL, err := s.Services.Get(urlID)
 	if err != nil && !errors.Is(err, app.ErrDeletedURL) && !errors.Is(err, app.ErrLinkNoFound) {
 		c.AbortWithStatus(app.ErrStatusCode(err))
 		return
@@ -223,14 +223,13 @@ func (s *Shortener) DeleteUserURLs(c *gin.Context) {
 		return
 	}
 
-	userID := c.GetUint64("userid")
-	s.Services.DeleteWorker.Add(userID, urlsID)
+	s.Services.DeleteUserURLs(c.GetUint64("userid"), urlsID)
 
 	c.Status(http.StatusAccepted)
 }
 
 func (s *Shortener) Stats(c *gin.Context) {
-	res, err := s.Services.Storage.GetStats()
+	res, err := s.Services.GetStats()
 	if err != nil {
 		c.AbortWithStatus(http.StatusInternalServerError)
 		return

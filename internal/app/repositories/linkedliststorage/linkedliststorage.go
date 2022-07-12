@@ -2,12 +2,10 @@
 package linkedliststorage
 
 import (
-	"errors"
 	"sync"
 
 	"github.com/romm80/shortener.git/internal/app"
 	"github.com/romm80/shortener.git/internal/app/models"
-	"github.com/romm80/shortener.git/internal/app/service"
 )
 
 type node struct {
@@ -78,37 +76,16 @@ func (list *URLsList) deleteNode(node *node) {
 	list.tail = node.next
 }
 
-func (list *URLsList) Add(url string, userID uint64) (string, error) {
+func (list *URLsList) Add(url, urlID string, userID uint64) error {
 	list.mu.Lock()
 	defer list.mu.Unlock()
 
-	urlID := service.ShortenURLID(url)
 	if _, inList := list.findNode(urlID); inList {
-		return "", app.ErrConflictURLID
+		return app.ErrConflictURLID
 	}
 
 	list.appendNode(urlID, url, userID)
-	return urlID, nil
-}
-
-func (list *URLsList) AddBatch(urls []models.RequestBatch, userID uint64) ([]models.ResponseBatch, error) {
-	respBatch := make([]models.ResponseBatch, 0, len(urls))
-
-	for _, v := range urls {
-		urlID, err := list.Add(v.OriginalURL, userID)
-		if err != nil && !errors.Is(err, app.ErrConflictURLID) {
-			return nil, err
-		}
-		if errors.Is(err, app.ErrConflictURLID) {
-			continue
-		}
-
-		respBatch = append(respBatch, models.ResponseBatch{
-			CorrelationID: v.CorrelationID,
-			ShortURL:      service.BaseURL(urlID),
-		})
-	}
-	return respBatch, nil
+	return nil
 }
 
 func (list *URLsList) Get(id string) (string, error) {
@@ -130,7 +107,7 @@ func (list *URLsList) GetUserURLs(userID uint64) ([]models.UserURLs, error) {
 	for current != nil {
 		if current.userID == userID {
 			urls = append(urls, models.UserURLs{
-				ShortURL:    service.BaseURL(current.urlID),
+				ShortURL:    current.urlID,
 				OriginalURL: current.originURL,
 			})
 		}

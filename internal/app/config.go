@@ -1,4 +1,4 @@
-package server
+package app
 
 import (
 	"encoding/json"
@@ -14,7 +14,8 @@ import (
 // Config stores server settings
 type Config struct {
 	// SrvAddr - server address
-	SrvAddr string `env:"SERVER_ADDRESS" envDefault:"127.0.0.1:8080" json:"server_address,omitempty"`
+	SrvAddr  string `env:"SERVER_ADDRESS" envDefault:"127.0.0.1:8080" json:"server_address,omitempty"`
+	GrpcAddr string `env:"GRPC_SERVER_ADDRESS" envDefault:"127.0.0.1:7002"`
 	// TrustedSubnet
 	TrustedSubnet string `env:"TRUSTED_SUBNET" json:"trusted_subnet,omitempty"`
 	// BaseURL - host for generated shortener link id

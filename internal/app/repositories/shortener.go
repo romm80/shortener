@@ -4,11 +4,11 @@ package repositories
 import (
 	"errors"
 
+	"github.com/romm80/shortener.git/internal/app"
 	"github.com/romm80/shortener.git/internal/app/models"
 	"github.com/romm80/shortener.git/internal/app/repositories/dbpostgres"
 	"github.com/romm80/shortener.git/internal/app/repositories/linkedliststorage"
 	"github.com/romm80/shortener.git/internal/app/repositories/mapstorage"
-	"github.com/romm80/shortener.git/internal/app/server"
 )
 
 // Shortener repository interface
@@ -27,12 +27,12 @@ func NewStorage() (Shortener, error) {
 	var err error
 	var storage Shortener
 
-	switch server.Cfg.DBType {
-	case server.DBMap:
+	switch app.Cfg.DBType {
+	case app.DBMap:
 		storage, err = mapstorage.New()
-	case server.DBPostgres:
+	case app.DBPostgres:
 		storage, err = dbpostgres.New()
-	case server.DBLinkedList:
+	case app.DBLinkedList:
 		storage = linkedliststorage.New()
 	default:
 		return nil, errors.New("wrong DB type")

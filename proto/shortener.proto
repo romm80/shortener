@@ -7,4 +7,55 @@ import "google/protobuf/empty.proto";
 
 service Shortener {
   rpc PingDB(google.protobuf.Empty) returns(google.protobuf.Empty);
+  rpc Add(OriginURL) returns(ShortURL);
+  rpc Get(RequestID) returns(OriginURL);
+  rpc BatchURLs(RequestBatchURL) returns(ResponseBatchURL);
+  rpc GetUserURLs(google.protobuf.Empty) returns(UserURLs);
+  rpc DeleteUserURLs(DeleteIDs) returns(google.protobuf.Empty);
+  rpc Stats(google.protobuf.Empty) returns(StatsMsg);
+}
+
+message OriginURL {
+  string url = 1;
+}
+
+message ShortURL {
+  string result = 1;
+}
+
+message RequestID {
+  string urlID = 1;
+}
+
+message RequestBatchURL {
+  message URL {
+    string correlationID = 1;
+    string originalURL = 2;
+  }
+  repeated URL BatchURL = 1;
+}
+
+message ResponseBatchURL {
+  message URL {
+    string correlationID = 1;
+    string ShortURL = 2;
+  }
+  repeated URL BatchURL = 1;
+}
+
+message UserURLs {
+  message URL {
+    string ShortURL = 1;
+    string OriginalURL = 2;
+  }
+  repeated URL URLs = 1;
+}
+
+message DeleteIDs {
+  repeated string ID = 1;
+}
+
+message StatsMsg {
+  int32 URLS = 1;
+  int32 Users = 2;
 }

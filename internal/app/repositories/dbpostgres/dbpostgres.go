@@ -6,10 +6,8 @@ import (
 
 	"github.com/golang-migrate/migrate/v4"
 	"github.com/jackc/pgx/v4/pgxpool"
-
 	"github.com/romm80/shortener.git/internal/app"
 	"github.com/romm80/shortener.git/internal/app/models"
-	"github.com/romm80/shortener.git/internal/app/server"
 )
 
 type DB struct {
@@ -32,7 +30,7 @@ func New() (*DB, error) {
 		return nil, err
 	}
 
-	pool, err := pgxpool.Connect(context.Background(), server.Cfg.DatabaseDNS)
+	pool, err := pgxpool.Connect(context.Background(), app.Cfg.DatabaseDNS)
 	if err != nil {
 		return nil, err
 	}
@@ -48,7 +46,7 @@ func migrateDB() error {
 
 	m, err := migrate.New(
 		"file://db/migrations",
-		server.Cfg.DatabaseDNS)
+		app.Cfg.DatabaseDNS)
 	if err != nil {
 		return err
 	}
