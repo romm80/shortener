@@ -3,7 +3,6 @@ package handlers
 import (
 	"encoding/json"
 	"errors"
-	"fmt"
 	"io/ioutil"
 	"net/http"
 
@@ -12,9 +11,7 @@ import (
 
 	"github.com/romm80/shortener.git/internal/app"
 	"github.com/romm80/shortener.git/internal/app/models"
-	"github.com/romm80/shortener.git/internal/app/repositories"
-	"github.com/romm80/shortener.git/internal/app/server"
-	"github.com/romm80/shortener.git/internal/app/service/workers"
+	"github.com/romm80/shortener.git/internal/app/service"
 )
 
 // @title           Shortener API
@@ -24,18 +21,12 @@ import (
 // @host      localhost:8080
 
 type Shortener struct {
-	Router       *gin.Engine
-	Storage      repositories.Shortener
-	DeleteWorker *workers.DeleteWorker
+	Router   *gin.Engine
+	Services *service.Services
 }
 
-func New() (*Shortener, error) {
-	r := &Shortener{DeleteWorker: workers.NewDeleteWorker(1000)}
-	var err error
-	if r.Storage, err = repositories.NewStorage(); err != nil {
-		return nil, err
-	}
-	r.DeleteWorker.Run(r.Storage)
+func New(services *service.Services) (*Shortener, error) {
+	r := &Shortener{Services: services}
 
 	r.Router = gin.Default()
 	r.Router.GET("/ping", r.PingDB)
@@ -47,6 +38,8 @@ func New() (*Shortener, error) {
 	r.Router.POST("/api/shorten/batch", r.BatchURLs)
 	r.Router.GET("/api/user/urls", r.GetUserURLs)
 	r.Router.DELETE("/api/user/urls", r.DeleteUserURLs)
+	r.Router.Use(r.TrustedIP)
+	r.Router.GET("/api/internal/stats", r.DeleteUserURLs)
 
 	pprof.Register(r.Router)
 	return r, nil
@@ -68,7 +61,7 @@ func (s *Shortener) Add(c *gin.Context) {
 		return
 	}
 
-	urlID, err := s.Storage.Add(string(originURL), c.GetUint64("userid"))
+	res, err := s.Services.Add(string(originURL), c.GetUint64("userid"))
 	statusCode := http.StatusCreated
 	if err != nil && !errors.Is(err, app.ErrConflictURLID) {
 		c.AbortWithError(http.StatusInternalServerError, err)
@@ -78,7 +71,7 @@ func (s *Shortener) Add(c *gin.Context) {
 		statusCode = app.ErrStatusCode(err)
 	}
 
-	c.String(statusCode, "%s/%s", server.Cfg.BaseURL, urlID)
+	c.String(statusCode, "%s", res)
 }
 
 // AddJSON godoc
@@ -102,7 +95,7 @@ func (s *Shortener) AddJSON(c *gin.Context) {
 		return
 	}
 
-	urlID, err := s.Storage.Add(request.URL, c.GetUint64("userid"))
+	res, err := s.Services.Add(request.URL, c.GetUint64("userid"))
 	statusCode := http.StatusCreated
 	if err != nil && !errors.Is(err, app.ErrConflictURLID) {
 		c.AbortWithError(http.StatusInternalServerError, err)
@@ -112,8 +105,7 @@ func (s *Shortener) AddJSON(c *gin.Context) {
 		statusCode = app.ErrStatusCode(err)
 	}
 
-	res := models.ResponseURL{Result: fmt.Sprintf("%s/%s", server.Cfg.BaseURL, urlID)}
-	c.JSON(statusCode, res)
+	c.JSON(statusCode, models.ResponseURL{Result: res})
 }
 
 // Get godoc
@@ -127,7 +119,7 @@ func (s *Shortener) AddJSON(c *gin.Context) {
 // @Router /{id} [get]
 func (s *Shortener) Get(c *gin.Context) {
 	urlID := c.Param("id")
-	originURL, err := s.Storage.Get(urlID)
+	originURL, err := s.Services.Get(urlID)
 	if err != nil && !errors.Is(err, app.ErrDeletedURL) && !errors.Is(err, app.ErrLinkNoFound) {
 		c.AbortWithStatus(app.ErrStatusCode(err))
 		return
@@ -161,7 +153,7 @@ func (s *Shortener) BatchURLs(c *gin.Context) {
 		c.AbortWithError(http.StatusBadRequest, err)
 	}
 
-	respBatch, err := s.Storage.AddBatch(reqBatch, c.GetUint64("userid"))
+	respBatch, err := s.Services.AddBatch(reqBatch, c.GetUint64("userid"))
 	if err != nil && !errors.Is(err, app.ErrConflictURLID) {
 		c.AbortWithError(http.StatusInternalServerError, err)
 		return
@@ -185,7 +177,7 @@ func (s *Shortener) BatchURLs(c *gin.Context) {
 // @Router       /api/user/urls [get]
 func (s *Shortener) GetUserURLs(c *gin.Context) {
 	userID := c.GetUint64("userid")
-	res, err := s.Storage.GetUserURLs(userID)
+	res, err := s.Services.GetUserURLs(userID)
 	if err != nil {
 		c.AbortWithError(http.StatusInternalServerError, err)
 		return
@@ -204,7 +196,7 @@ func (s *Shortener) GetUserURLs(c *gin.Context) {
 // @Failure 500 {string} string "internal error"
 // @Router       /ping [get]
 func (s *Shortener) PingDB(c *gin.Context) {
-	if err := s.Storage.Ping(); err != nil {
+	if err := s.Services.Storage.Ping(); err != nil {
 		c.AbortWithError(http.StatusInternalServerError, err)
 		return
 	}
@@ -231,8 +223,17 @@ func (s *Shortener) DeleteUserURLs(c *gin.Context) {
 		return
 	}
 
-	userID := c.GetUint64("userid")
-	s.DeleteWorker.Add(userID, urlsID)
+	s.Services.DeleteUserURLs(c.GetUint64("userid"), urlsID)
 
 	c.Status(http.StatusAccepted)
+}
+
+func (s *Shortener) Stats(c *gin.Context) {
+	res, err := s.Services.GetStats()
+	if err != nil {
+		c.AbortWithStatus(http.StatusInternalServerError)
+		return
+	}
+
+	c.JSON(http.StatusOK, res)
 }

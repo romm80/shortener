@@ -2,12 +2,12 @@ package handlers
 
 import (
 	"compress/gzip"
+	"net"
 	"net/http"
 	"strings"
 
 	"github.com/gin-gonic/gin"
-
-	"github.com/romm80/shortener.git/internal/app/server"
+	"github.com/romm80/shortener.git/internal/app"
 	"github.com/romm80/shortener.git/internal/app/service"
 )
 
@@ -47,7 +47,7 @@ func (s *Shortener) AuthMiddleware(c *gin.Context) {
 
 	cookie, err := c.Cookie("userid")
 	if err != nil || !service.ValidUserID(cookie, &userID) {
-		if userID, err = s.Storage.NewUser(); err != nil {
+		if userID, err = s.Services.NewUser(); err != nil {
 			c.AbortWithStatus(http.StatusInternalServerError)
 			return
 		}
@@ -56,9 +56,17 @@ func (s *Shortener) AuthMiddleware(c *gin.Context) {
 			c.AbortWithStatus(http.StatusInternalServerError)
 			return
 		}
-		c.SetCookie("userid", signedID, 0, "/", server.Cfg.Domain, false, true)
+		c.SetCookie("userid", signedID, 0, "/", app.Cfg.Domain, false, true)
 	}
 
 	c.Set("userid", userID)
 	c.Next()
+}
+
+func (s *Shortener) TrustedIP(c *gin.Context) {
+	if app.Cfg.TrustedIPNet != nil && app.Cfg.TrustedIPNet.Contains(net.ParseIP(c.GetHeader("X-Real-IP"))) {
+		c.Next()
+		return
+	}
+	c.AbortWithStatus(http.StatusForbidden)
 }

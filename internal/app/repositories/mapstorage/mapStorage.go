@@ -4,14 +4,11 @@ package mapstorage
 import (
 	"bufio"
 	"encoding/json"
-	"errors"
 	"os"
 	"sync"
 
 	"github.com/romm80/shortener.git/internal/app"
 	"github.com/romm80/shortener.git/internal/app/models"
-	"github.com/romm80/shortener.git/internal/app/server"
-	"github.com/romm80/shortener.git/internal/app/service"
 )
 
 type MapStorage struct {
@@ -25,8 +22,8 @@ func New() (*MapStorage, error) {
 	storage := make(map[string]string)
 	usersLinks := make(map[uint64]map[string]string)
 
-	if server.Cfg.FileStorage != "" {
-		file, err := os.OpenFile(server.Cfg.FileStorage, os.O_RDONLY|os.O_CREATE, 0777)
+	if app.Cfg.FileStorage != "" {
+		file, err := os.OpenFile(app.Cfg.FileStorage, os.O_RDONLY|os.O_CREATE, 0777)
 		if err != nil {
 			return nil, err
 		}
@@ -49,11 +46,10 @@ func New() (*MapStorage, error) {
 	}, nil
 }
 
-func (s *MapStorage) Add(url string, userID uint64) (string, error) {
-	urlID := service.ShortenURLID(url)
+func (s *MapStorage) Add(url, urlID string, userID uint64) error {
 
 	if _, inMap := s.links[urlID]; inMap {
-		return "", app.ErrConflictURLID
+		return app.ErrConflictURLID
 	}
 
 	s.mu.Lock()
@@ -65,10 +61,10 @@ func (s *MapStorage) Add(url string, userID uint64) (string, error) {
 	}
 	s.usersLinks[userID][urlID] = url
 
-	if server.Cfg.FileStorage != "" {
-		file, err := os.OpenFile(server.Cfg.FileStorage, os.O_WRONLY|os.O_APPEND, 0777)
+	if app.Cfg.FileStorage != "" {
+		file, err := os.OpenFile(app.Cfg.FileStorage, os.O_WRONLY|os.O_APPEND, 0777)
 		if err != nil {
-			return "", err
+			return err
 		}
 		defer file.Close()
 
@@ -78,37 +74,14 @@ func (s *MapStorage) Add(url string, userID uint64) (string, error) {
 		}
 		b, err := json.Marshal(res)
 		if err != nil {
-			return "", err
+			return err
 		}
 		if _, err := file.Write(append(b, '\n')); err != nil {
-			return "", err
+			return err
 		}
 	}
 
-	return urlID, nil
-}
-
-func (s *MapStorage) AddBatch(urls []models.RequestBatch, userID uint64) ([]models.ResponseBatch, error) {
-	respBatch := make([]models.ResponseBatch, 0)
-	if s.usersLinks[userID] == nil {
-		s.usersLinks[userID] = make(map[string]string, len(urls))
-	}
-	for _, v := range urls {
-		urlID, err := s.Add(v.OriginalURL, userID)
-		if err != nil && !errors.Is(err, app.ErrConflictURLID) {
-			return nil, err
-		}
-		if errors.Is(err, app.ErrConflictURLID) {
-			continue
-		}
-
-		respBatch = append(respBatch, models.ResponseBatch{
-			CorrelationID: v.CorrelationID,
-			ShortURL:      service.BaseURL(urlID),
-		})
-	}
-
-	return respBatch, nil
+	return nil
 }
 
 func (s *MapStorage) Get(id string) (string, error) {
@@ -122,7 +95,7 @@ func (s *MapStorage) GetUserURLs(userID uint64) ([]models.UserURLs, error) {
 	urls := make([]models.UserURLs, 0)
 	for k, v := range s.usersLinks[userID] {
 		urls = append(urls, models.UserURLs{
-			ShortURL:    service.BaseURL(k),
+			ShortURL:    k,
 			OriginalURL: v,
 		})
 	}
@@ -146,4 +119,11 @@ func (s *MapStorage) DeleteBatch(userID uint64, urlsID []string) error {
 		delete(s.usersLinks[userID], urlID)
 	}
 	return nil
+}
+
+func (s *MapStorage) GetStats() (*models.StatsResponse, error) {
+	return &models.StatsResponse{
+		URLs:  len(s.links),
+		Users: len(s.usersLinks),
+	}, nil
 }

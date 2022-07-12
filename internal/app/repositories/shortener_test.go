@@ -7,6 +7,7 @@ import (
 
 	"github.com/romm80/shortener.git/internal/app/repositories/linkedliststorage"
 	"github.com/romm80/shortener.git/internal/app/repositories/mapstorage"
+	"github.com/romm80/shortener.git/internal/app/service"
 )
 
 const triesN = 10000
@@ -27,13 +28,13 @@ func BenchmarkAdd(b *testing.B) {
 
 	b.Run("map", func(b *testing.B) {
 		for i := 0; i < triesN; i++ {
-			_, _ = mapDB.Add(urls[i], 1)
+			_ = mapDB.Add(urls[i], service.ShortenURLID(urls[i]), 1)
 		}
 	})
 
 	b.Run("list", func(b *testing.B) {
 		for i := 0; i < triesN; i++ {
-			_, _ = listDB.Add(urls[i], 1)
+			_ = listDB.Add(urls[i], service.ShortenURLID(urls[i]), 1)
 		}
 	})
 }
@@ -49,8 +50,9 @@ func BenchmarkGet(b *testing.B) {
 		urls = append(urls, base32.StdEncoding.EncodeToString(randomBytes))
 	}
 	for i := 0; i < triesN; i++ {
-		_, _ = mapDB.Add(urls[i], 1)
-		id, _ := listDB.Add(urls[i], 1)
+		id := service.ShortenURLID(urls[i])
+		_ = mapDB.Add(urls[i], id, 1)
+		_ = listDB.Add(urls[i], id, 1)
 		IDs = append(IDs, id)
 	}
 	b.ResetTimer()
@@ -81,8 +83,9 @@ func BenchmarkGetUserURLs(b *testing.B) {
 			randomBytes := make([]byte, 32)
 			_, _ = rand.Read(randomBytes)
 			originURL := base32.StdEncoding.EncodeToString(randomBytes)
-			_, _ = mapDB.Add(originURL, uint64(i))
-			_, _ = listDB.Add(originURL, uint64(i))
+			id := service.ShortenURLID(originURL)
+			_ = mapDB.Add(originURL, id, uint64(i))
+			_ = listDB.Add(originURL, id, uint64(i))
 		}
 	}
 
@@ -116,12 +119,13 @@ func BenchmarkDeleteBatch(b *testing.B) {
 			randomBytes := make([]byte, 32)
 			_, _ = rand.Read(randomBytes)
 			originURL := base32.StdEncoding.EncodeToString(randomBytes)
-			_, _ = mapDB.Add(originURL, uint64(i))
-			urlID, _ := listDB.Add(originURL, uint64(i))
+			id := service.ShortenURLID(originURL)
+			_ = mapDB.Add(originURL, id, uint64(i))
+			_ = listDB.Add(originURL, id, uint64(i))
 			if userURLs[uint64(i)] == nil {
 				userURLs[uint64(i)] = make([]string, 0, urlsN)
 			}
-			userURLs[uint64(i)] = append(userURLs[uint64(i)], urlID)
+			userURLs[uint64(i)] = append(userURLs[uint64(i)], id)
 		}
 	}
 

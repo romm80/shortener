@@ -11,34 +11,39 @@ import (
 	"testing"
 
 	"github.com/caarlos0/env/v6"
+	"github.com/romm80/shortener.git/internal/app"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
 	"github.com/romm80/shortener.git/internal/app/models"
-	"github.com/romm80/shortener.git/internal/app/server"
 	"github.com/romm80/shortener.git/internal/app/service"
 )
 
-var urls = []models.URLsID{
-	{
-		ID:          service.ShortenURLID("https://www.google.com/"),
-		OriginalURL: "https://www.google.com/",
-	},
-	{
-		ID:          service.ShortenURLID("https://yandex.ru/"),
-		OriginalURL: "https://yandex.ru/",
-	},
-}
-
 func TestShortener_Add(t *testing.T) {
-	server.Cfg.DBType = server.DBMap
-	server.Cfg.FileStorage = ""
+	app.Cfg.DBType = app.DBMap
+	app.Cfg.FileStorage = ""
 
-	handler, err := New()
+	var urls = []models.URLsID{
+		{
+			ID:          service.ShortenURLID("https://www.google.com/"),
+			OriginalURL: "https://www.google.com/",
+		},
+		{
+			ID:          service.ShortenURLID("https://yandex.ru/"),
+			OriginalURL: "https://yandex.ru/",
+		},
+	}
+
+	services, err := service.NewServices()
 	if err != nil {
 		log.Fatal(err)
 	}
-	if err := env.Parse(&server.Cfg); err != nil {
+
+	handler, err := New(services)
+	if err != nil {
+		log.Fatal(err)
+	}
+	if err := env.Parse(&app.Cfg); err != nil {
 		log.Fatal(err)
 	}
 
@@ -93,17 +98,34 @@ func TestShortener_Add(t *testing.T) {
 }
 
 func TestShortener_Get(t *testing.T) {
-	server.Cfg.DBType = server.DBMap
-	server.Cfg.FileStorage = ""
-	handler, err := New()
+	app.Cfg.DBType = app.DBMap
+	app.Cfg.FileStorage = ""
+
+	services, err := service.NewServices()
 	if err != nil {
 		log.Fatal(err)
 	}
-	if err := env.Parse(&server.Cfg); err != nil {
+
+	handler, err := New(services)
+	if err != nil {
+		log.Fatal(err)
+	}
+	if err := env.Parse(&app.Cfg); err != nil {
 		log.Fatal(err)
 	}
 
-	userID, _ := handler.Storage.NewUser()
+	var urls = []models.URLsID{
+		{
+			ID:          service.ShortenURLID("https://www.google.com/"),
+			OriginalURL: "https://www.google.com/",
+		},
+		{
+			ID:          service.ShortenURLID("https://yandex.ru/"),
+			OriginalURL: "https://yandex.ru/",
+		},
+	}
+
+	userID, _ := handler.Services.NewUser()
 	urls = []models.URLsID{
 		{
 			OriginalURL: "https://www.google.com/",
@@ -113,8 +135,8 @@ func TestShortener_Get(t *testing.T) {
 		},
 	}
 
-	urls[0].ID, _ = handler.Storage.Add(urls[0].OriginalURL, userID)
-	urls[1].ID, _ = handler.Storage.Add(urls[1].OriginalURL, userID)
+	urls[0].ID, _ = handler.Services.Add(urls[0].OriginalURL, userID)
+	urls[1].ID, _ = handler.Services.Add(urls[1].OriginalURL, userID)
 
 	type want struct {
 		location string
@@ -129,7 +151,7 @@ func TestShortener_Get(t *testing.T) {
 		{
 			name: "Successfully received link 1",
 			path: "/",
-			id:   urls[0].ID,
+			id:   service.ShortenURLID(urls[0].OriginalURL),
 			want: want{
 				status:   307,
 				location: urls[0].OriginalURL,
@@ -138,7 +160,7 @@ func TestShortener_Get(t *testing.T) {
 		{
 			name: "Successfully received link 2",
 			path: "/",
-			id:   urls[1].ID,
+			id:   service.ShortenURLID(urls[1].OriginalURL),
 			want: want{
 				status:   307,
 				location: urls[1].OriginalURL,
@@ -170,13 +192,28 @@ func TestShortener_Get(t *testing.T) {
 }
 
 func TestShortener_AddJSON(t *testing.T) {
-	server.Cfg.DBType = server.DBMap
+	app.Cfg.DBType = app.DBMap
+	var urls = []models.URLsID{
+		{
+			ID:          service.ShortenURLID("https://www.google.com/"),
+			OriginalURL: "https://www.google.com/",
+		},
+		{
+			ID:          service.ShortenURLID("https://yandex.ru/"),
+			OriginalURL: "https://yandex.ru/",
+		},
+	}
 
-	handler, err := New()
+	services, err := service.NewServices()
 	if err != nil {
 		log.Fatal(err)
 	}
-	if err := env.Parse(&server.Cfg); err != nil {
+
+	handler, err := New(services)
+	if err != nil {
+		log.Fatal(err)
+	}
+	if err := env.Parse(&app.Cfg); err != nil {
 		log.Fatal(err)
 	}
 
@@ -251,8 +288,8 @@ func TestShortener_AddJSON(t *testing.T) {
 }
 
 func TestShortener_BatchURLs(t *testing.T) {
-	server.Cfg.DBType = server.DBMap
-	server.Cfg.BaseURL = "http://127.0.0.1:8080"
+	app.Cfg.DBType = app.DBMap
+	app.Cfg.BaseURL = "http://127.0.0.1:8080"
 	batchPath := "/api/shorten/batch"
 	RequestURLs := []models.RequestBatch{
 		{
@@ -283,11 +320,16 @@ func TestShortener_BatchURLs(t *testing.T) {
 		log.Fatal(err)
 	}
 
-	handler, err := New()
+	services, err := service.NewServices()
 	if err != nil {
 		log.Fatal(err)
 	}
-	if err := env.Parse(&server.Cfg); err != nil {
+
+	handler, err := New(services)
+	if err != nil {
+		log.Fatal(err)
+	}
+	if err := env.Parse(&app.Cfg); err != nil {
 		log.Fatal(err)
 	}
 
@@ -345,13 +387,18 @@ func TestShortener_BatchURLs(t *testing.T) {
 }
 
 func TestShortener_GetUserURLs(t *testing.T) {
-	server.Cfg.DBType = server.DBMap
+	app.Cfg.DBType = app.DBMap
 
-	handler, err := New()
+	services, err := service.NewServices()
 	if err != nil {
 		log.Fatal(err)
 	}
-	if err = env.Parse(&server.Cfg); err != nil {
+
+	handler, err := New(services)
+	if err != nil {
+		log.Fatal(err)
+	}
+	if err = env.Parse(&app.Cfg); err != nil {
 		log.Fatal(err)
 	}
 	userURLsPath := "/api/user/urls"
@@ -365,11 +412,11 @@ func TestShortener_GetUserURLs(t *testing.T) {
 			OriginalURL:   "https://www.yandex.ru/",
 		},
 	}
-	userID, err := handler.Storage.NewUser()
+	userID, err := handler.Services.NewUser()
 	if err != nil {
 		log.Fatal(err)
 	}
-	shortURLs, err := handler.Storage.AddBatch(URLs, userID)
+	shortURLs, err := handler.Services.AddBatch(URLs, userID)
 	if err != nil {
 		log.Fatal(err)
 	}

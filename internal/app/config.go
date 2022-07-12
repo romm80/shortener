@@ -1,18 +1,23 @@
-package server
+package app
 
 import (
 	"encoding/json"
 	"flag"
 	"io/ioutil"
+	"net"
+
+	"github.com/romm80/shortener.git/internal/app/server/certificate"
 
 	"github.com/caarlos0/env/v6"
-	"github.com/romm80/shortener.git/internal/app/service/certificate"
 )
 
 // Config stores server settings
 type Config struct {
 	// SrvAddr - server address
-	SrvAddr string `env:"SERVER_ADDRESS" envDefault:"127.0.0.1:8080" json:"server_address,omitempty"`
+	SrvAddr  string `env:"SERVER_ADDRESS" envDefault:"127.0.0.1:8080" json:"server_address,omitempty"`
+	GrpcAddr string `env:"GRPC_SERVER_ADDRESS" envDefault:"127.0.0.1:7002"`
+	// TrustedSubnet
+	TrustedSubnet string `env:"TRUSTED_SUBNET" json:"trusted_subnet,omitempty"`
 	// BaseURL - host for generated shortener link id
 	BaseURL string `env:"BASE_URL" envDefault:"http://127.0.0.1:8080" json:"base_url,omitempty"`
 	// FileStorage - path to the shortened link storage file
@@ -33,6 +38,8 @@ type Config struct {
 	CertFilePath string
 	// PrivateKeyFilePath
 	PrivateKeyFilePath string
+	//CIDR
+	TrustedIPNet *net.IPNet
 }
 
 // DBType - database type used to store shortened links
@@ -46,7 +53,7 @@ const (
 	DBLinkedList DBType = "DBLinkedList"
 )
 
-func InitConfig() error {
+func InitConfig() (err error) {
 	if err := env.Parse(&Cfg); err != nil {
 		return err
 	}
@@ -55,8 +62,9 @@ func InitConfig() error {
 	flag.StringVar(&Cfg.FileStorage, "f", Cfg.FileStorage, "File storage path")
 	flag.StringVar(&Cfg.DatabaseDNS, "d", Cfg.DatabaseDNS, "Database DNS")
 	flag.BoolVar(&Cfg.EnableHTTPS, "s", Cfg.EnableHTTPS, "Enable HTTPs")
-	flag.StringVar(&Cfg.Config, "c", Cfg.Config, "Database DNS")
-	flag.StringVar(&Cfg.Config, "config", Cfg.Config, "Database DNS")
+	flag.StringVar(&Cfg.Config, "c", Cfg.Config, "Config file")
+	flag.StringVar(&Cfg.Config, "config", Cfg.Config, "Config file")
+	flag.StringVar(&Cfg.TrustedSubnet, "t", Cfg.Config, "Trusted subnet")
 	flag.Parse()
 
 	if Cfg.Config != "" {
@@ -97,6 +105,13 @@ func InitConfig() error {
 		Cfg.CertFilePath = "cert.pem"
 		Cfg.PrivateKeyFilePath = "privateKey.pem"
 		if err := certificate.GenerateCert(Cfg.CertFilePath, Cfg.PrivateKeyFilePath); err != nil {
+			return err
+		}
+	}
+
+	if Cfg.TrustedSubnet != "" {
+		_, Cfg.TrustedIPNet, err = net.ParseCIDR(Cfg.TrustedSubnet)
+		if err != nil {
 			return err
 		}
 	}
